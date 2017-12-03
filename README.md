@@ -1,13 +1,14 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/o4hmpca4mert1k0i/branch/1.4.4.0?svg=true)](https://ci.appveyor.com/project/JamzTheMan/MapTool/branch/1.4.4.0)
 [![Build Status](https://travis-ci.org/JamzTheMan/MapTool.svg?branch=1.4.4.0)](https://travis-ci.org/JamzTheMan/MapTool)
 
-MapTool
+Welcome!
 =======
 
-Welcome to my fork of MapTool, now infused with Nerps!. The old version (1.3) still resides on [SourceForge](http://sourceforge.net/p/rptools/svn/HEAD/tree/) but should only be updated with major bug fixes.
+So you're interested in adding a little Nerps to your MapTool eh?, You've come to the right place! Don't be scared, you'll find everything from the regular version of MapTool plus so much more. We've got PDF Image extraction, Hero Lab integration, Syntax Highlighting with Code Folding for macro editing, RESTful macro functions, and so much more!
 
+___
 
-What's with the Infused with Nerps?
+So, what's with the Infused with Nerps?
 -----
 It's simply my way of telling you, the user, this is my fork of MapTool and not the official RPTools version.  I've been a passionate user and contributer of MapTool for over 7 years now. I enjoy coding in Java as a hobby and use MapTool in my weekly game (currently Pathfinder) and plan to do so indefinetly. _My gaming group has been going strong since 1991!_
 
