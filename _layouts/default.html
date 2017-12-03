@@ -38,24 +38,25 @@
         </section>
 
         <aside id="sidebar">
+          <a href="{{ site.github.releases_url }}" class="button">
+              View Changelog
+            </a>
             <a href="{{ site.github.releases_url }}/download/1.4.4.0/MapTool-1.4.4.0.exe" class="button">
-              <small>Download</small>
-              .exe (Windows)
+              <small>Windows</small>
+              .exe
             </a>
             <a href="{{ site.github.releases_url }}/download/1.4.4.0/MapTool-1.4.4.0.pkg" class="button">
-              <small>Download</small>
-              .pkg (MacOS)
+              <small>MacOS</small>
+              .pkg
             </a>
             <a href="{{ site.github.releases_url }}/download/1.4.4.0/MapTool-1.4.4.0.deb" class="button">
-              <small>Download</small>
-              .deb (Linux)
+              <small>Linux</small>
+              .deb
             </a>
             <a href="{{ site.github.releases_url }}/download/1.4.4.0/MapTool-1.4.4.0.jar" class="button">
-              <small>Download</small>
-              .jar (Universal)
+              <small>Universal</small>
+              .jar
             </a>
-          
-          test: {{site.github.latest_release}}
           
           {% if site.github.is_project_page %}
             <p class="repo-owner"><a href="{{ site.github.repository_url }}">{{ site.github.repository_name }}</a> is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a>.</p>
