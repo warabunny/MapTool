@@ -7,7 +7,7 @@ Welcome!
 So you're interested in adding a little Nerps to your MapTool eh?, You've come to the right place! Don't be scared, you'll find everything from the regular version of MapTool plus so much more. We've got PDF Image extraction, Hero Lab integration, Syntax Highlighting with Code Folding for macro editing, RESTful macro functions, and so much more!
 
 If you've heard enough, grab the [latest release here!](https://github.com/JamzTheMan/MapTool/releases/latest)
-___
+
 
 So, what's with the Infused with Nerps?
 -----
