@@ -307,9 +307,9 @@ task deploy(dependsOn: [displayGitInfo, uberJar, copyPackageExtras, prepareInnoS
 		//		  It will bundle system/workspace JDK by default
 		def javapackager_deploy = exec {
 			workingDir "${project.projectDir.absolutePath}"
-			
+
 			println workingDir
-			
+
 			commandLine "javapackager",
 				"-deploy", "-v",
 				"-native", "installer",
@@ -335,7 +335,7 @@ task deploy(dependsOn: [displayGitInfo, uberJar, copyPackageExtras, prepareInnoS
 				"-Bemail=maptool@nerps.net",
 				"-BjvmProperties=MAPTOOL_DATADIR=.maptool-" + vendor
 				//"-BuserJvmOptions=-Xss=4M"
-				
+
 				println commandLine
 		}
 	}
