@@ -9,13 +9,11 @@ matrix:
         packages:
         - oracle-java9-installer
         - fakeroot
-        - java -version
   - os: osx
     osx_image: xcode9.2
     before_install:
       - brew cask install java
       - echo "Completed JDK installation..."
-      - java -version
 script: 
   - ./gradlew build -x test
 after_success:
