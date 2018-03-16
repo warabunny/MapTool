@@ -12,18 +12,20 @@ matrix:
   - os: osx
     osx_image: xcode9.2
     before_install:
-      - export COOKIE1="gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"
-      - export COOKIE2="oraclelicense=accept-securebackup-cookie"
-      - export BASEURL=http://download.oracle.com/otn-pub/java/jdk
-      - export JDK=9.0.4+11/c2514751926b4512b076cc82f959763f/jdk-9.0.4_osx-x64_bin.dmg
-      - wget --no-cookies --no-check-certificate --header "Cookie: $COOKIE1; $COOKIE2" "$BASEURL/$JDK"
-      - hdiutil mount jdk-*.dmg
-      - sudo installer -pkg /Volumes/JDK*/JDK*.pkg -target LocalSystem
+      - brew cask install java9
       - echo "Completed JDK installation..."
 script: 
   - ./gradlew build -x test
 notifications:
-  slack: nerps:JumMHisqOlXac7be25Ca8FbN
+  slack: $DISCORD_URL
+after_success:
+  - wget https://raw.githubusercontent.com/k3rn31p4nic/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh success $WEBHOOK_URL
+after_failure:
+  - wget https://raw.githubusercontent.com/k3rn31p4nic/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh failure $WEBHOOK_URL
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
