@@ -12,8 +12,7 @@ matrix:
   - os: osx
     osx_image: xcode9.2
     before_install:
-      - brew cask install java
-      - echo "Completed JDK installation..."
+      - brew cask reinstall java
 script: 
   - ./gradlew build -x test
 after_success:
