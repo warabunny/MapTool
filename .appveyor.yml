@@ -9,7 +9,7 @@ install:
   - SET PATH=%JAVA_HOME%\bin;%PATH%
 build_script:
   - ./gradlew build -x spotlessCheck
-before_deploy:
+after_build:
   - ./gradlew deploy
 artifacts:
   - path: releases\release-*\MapTool-*.exe
