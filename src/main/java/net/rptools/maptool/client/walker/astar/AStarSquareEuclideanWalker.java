@@ -39,6 +39,7 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 			neighborMap = new int[][] { NORTH, EAST, SOUTH, WEST };
 			break;
 		case ONE_ONE_ONE:
+		case ONE_TWO_ONE:
 		case MANHATTAN:
 			// promote straight directions to avoid 'only-diagonals' effect
 			neighborMap = new int[][] { NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
@@ -57,17 +58,37 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 
 	@Override
 	protected double gScore(CellPoint p1, CellPoint p2) {
-		return metricDistance(p1, p2);
+		double delta_x = Math.abs(p1.x - p2.x);
+		double delta_y = Math.abs(p1.y - p2.y);
+		
+//		if(delta_x > delta_y)
+//			return 14*delta_y + 10*(delta_x-delta_y);
+//		else
+//			return 14*delta_x + 10*(delta_y-delta_x);
+		
+		 return Math.min(delta_x, delta_y) * Math.sqrt(2) + Math.abs(delta_x - delta_y);
+
+//		return metricDistance(p1, p2);
 	}
 
 	@Override
 	protected double hScore(CellPoint p1, CellPoint p2) {
-		return metricDistance(p1, p2);
+		double delta_x = Math.abs(p1.x - p2.x);
+		double delta_y = Math.abs(p1.y - p2.y);
+		
+//		if(delta_x > delta_y)
+//			return 14*delta_y + 10*(delta_x-delta_y);
+//		else
+//			return 14*delta_x + 10*(delta_y-delta_x);
+		
+		return Math.min(delta_x, delta_y) * Math.sqrt(2) + Math.abs(delta_x - delta_y);
+
+//		return metricDistance(p1, p2);
 	}
 
 	private double metricDistance(CellPoint p1, CellPoint p2) {
-		int a = p2.x - p1.x;
-		int b = p2.y - p1.y;
+		int xDist = p2.x - p1.x;
+		int yDist = p2.y - p1.y;
 
 		final double distance;
 
@@ -77,12 +98,14 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 		// break;
 		case MANHATTAN:
 		case NO_DIAGONALS:
-			distance = Math.abs(a) + Math.abs(b);
+			distance = Math.abs(xDist) + Math.abs(yDist);
 			break;
 		default:
 		case ONE_TWO_ONE:
+			distance = Math.sqrt(xDist * xDist + yDist * yDist);
+			break;
 		case ONE_ONE_ONE:
-			distance = Math.sqrt(a * a + b * b);
+			distance = Math.sqrt(xDist * xDist + yDist * yDist);
 			break;
 		}
 		return distance;
