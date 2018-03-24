@@ -82,11 +82,11 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 		// If debug is enabled, MapTool is pretty busy so...
 		double estimatedTimeoutNeeded = 50;
-		if(log.isDebugEnabled()) {
+		if (log.isDebugEnabled()) {
 			estimatedTimeoutNeeded = hScore(start, end) * 10;
 			log.debug("A* Path timeout estimate: " + estimatedTimeoutNeeded);
 		}
-		
+
 		while (!openList.isEmpty()) {
 			if (System.currentTimeMillis() > timeOut + estimatedTimeoutNeeded) {
 				log.info("Timing out...");

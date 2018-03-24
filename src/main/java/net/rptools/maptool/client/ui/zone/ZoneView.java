@@ -58,7 +58,7 @@ import net.rptools.maptool.model.Zone.Filter;
 
 public class ZoneView implements ModelChangeListener {
 	private static final Logger log = LogManager.getLogger(ZoneView.class);
-	
+
 	private final Zone zone;
 
 	// VISION

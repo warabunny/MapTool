@@ -23,7 +23,7 @@ public class AreaTree {
 	private static final Logger log = LogManager.getLogger(AreaTree.class);
 	private AreaOcean theOcean;
 	private Area theArea; // in case we want to return the original area undigested
-	
+
 	public AreaTree(Area area) {
 		digest(area);
 	}
@@ -40,13 +40,14 @@ public class AreaTree {
 	public Area getArea() {
 		return theArea;
 	}
+
 	private void digest(Area area) {
 		if (area == null) {
 			return;
 		}
-		
+
 		theArea = area;
-		
+
 		List<AreaOcean> oceanList = new ArrayList<AreaOcean>();
 		List<AreaIsland> islandList = new ArrayList<AreaIsland>();
 

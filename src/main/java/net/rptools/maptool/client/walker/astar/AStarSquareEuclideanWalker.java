@@ -72,7 +72,7 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 
 			if (closedSet.contains(neighbor))
 				continue;
-			
+
 			Rectangle cellBounds = zone.getGrid().getBounds(neighbor);
 
 			// VBL Check
@@ -135,7 +135,7 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 			distance = Math.max(Math.abs(xDist), Math.abs(yDist));
 			break;
 		}
-		
+
 		return distance;
 	}
 

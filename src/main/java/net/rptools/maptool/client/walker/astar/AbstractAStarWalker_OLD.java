@@ -61,8 +61,8 @@ public abstract class AbstractAStarWalker_OLD extends AbstractZoneWalker {
 		Area vbl = zone.getTopology();
 
 		// If end point is in VBL GTFO
-		//if (vbl.intersects(zone.getGrid().getBounds(end)))
-			//return null;
+		// if (vbl.intersects(zone.getGrid().getBounds(end)))
+		// return null;
 
 		long timeOut = System.currentTimeMillis() + 2000;
 		// log.info("openList size: " + openList.size());
@@ -124,7 +124,7 @@ public abstract class AbstractAStarWalker_OLD extends AbstractZoneWalker {
 
 				Rectangle cellBounds = zone.getGrid().getBounds(neighborNode);
 				double perc = 0;
-				
+
 				if (vbl.intersects(cellBounds)) {
 					Area cellArea = new Area(cellBounds);
 					cellArea.intersect(vbl);

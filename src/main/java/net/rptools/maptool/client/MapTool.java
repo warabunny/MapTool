@@ -1502,7 +1502,7 @@ public class MapTool {
 		} else {
 			DebugStream.deactivate();
 		}
-		
+
 		// List out passed in arguments
 		for (String arg : args) {
 			log.info("argument passed via command line: " + arg);

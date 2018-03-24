@@ -31,7 +31,7 @@ public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoi
 	public double cost() {
 		return h + g;
 	}
-	
+
 	@Override
 	public int compareTo(AStarCellPoint other) {
 		return Double.compare(f, other.f);
