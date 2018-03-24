@@ -25,25 +25,19 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.rptools.maptool.client.MapTool;
-import net.rptools.maptool.client.ui.zone.ZoneRenderer;
 import net.rptools.maptool.client.walker.AbstractZoneWalker;
 import net.rptools.maptool.model.CellPoint;
-import net.rptools.maptool.model.GUID;
 import net.rptools.maptool.model.Label;
 import net.rptools.maptool.model.Zone;
 
-public abstract class AbstractAStarWalker extends AbstractZoneWalker {
-	private static final Logger log = LogManager.getLogger(AbstractAStarWalker.class);
+public abstract class AbstractAStarWalker_OLD extends AbstractZoneWalker {
+	private static final Logger log = LogManager.getLogger(AbstractAStarWalker_OLD.class);
 
-	public AbstractAStarWalker(Zone zone) {
+	public AbstractAStarWalker_OLD(Zone zone) {
 		super(zone);
 	}
 
 	private int distance = -1;
-	private List<GUID> debugLabels;
-
-	protected Area vbl;
 
 	/**
 	 * Returns the list of neighbor cells that are valid for being movement-checked. This is an array of (x,y) offsets (see the constants in this class) named as compass points.
@@ -60,78 +54,160 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		Map<AStarCellPoint, AStarCellPoint> openSet = new HashMap<AStarCellPoint, AStarCellPoint>(); // For faster lookups
 		Set<AStarCellPoint> closedSet = new HashSet<AStarCellPoint>();
 
-		// Current fail safe... bail out after 1/2 second of searching
-		long timeOut = System.currentTimeMillis();
-
-		if (debugLabels == null)
-			debugLabels = new ArrayList<GUID>();
-
 		openList.add(new AStarCellPoint(start));
 		openSet.put(openList.get(0), openList.get(0));
 
-		AStarCellPoint currentNode = null;
-		// Get current VBL for map...
-		vbl = MapTool.getFrame().getCurrentZoneRenderer().getZoneView().getTopologyTree().getArea();
+		AStarCellPoint node = null;
+		Area vbl = zone.getTopology();
 
-		// Erase previous debug labels, this actually erases ALL labels!
-		if (!zone.getLabels().isEmpty()) {
-			for (Label label : zone.getLabels()) {
-				zone.removeLabel(label.getId());
-			}
+		// If end point is in VBL GTFO
+		//if (vbl.intersects(zone.getGrid().getBounds(end)))
+			//return null;
+
+		long timeOut = System.currentTimeMillis() + 2000;
+		// log.info("openList size: " + openList.size());
+
+		// erase all labels
+		List<Label> allLabels = zone.getLabels();
+		for (Label label : allLabels) {
+			zone.removeLabel(label.getId());
 		}
 
-		// If debug is enabled, MapTool is pretty busy so...
-		double estimatedTimeoutNeeded = 50;
-		if(log.isDebugEnabled()) {
-			estimatedTimeoutNeeded = hScore(start, end) * 10;
-			log.debug("A* Path timeout estimate: " + estimatedTimeoutNeeded);
-		}
-		
 		while (!openList.isEmpty()) {
-			if (System.currentTimeMillis() > timeOut + estimatedTimeoutNeeded) {
+			if (System.currentTimeMillis() > timeOut) {
 				log.info("Timing out...");
+				log.info("openList size now: " + openList.size());
 				break;
 			}
 
-			currentNode = openList.remove(0);
-			openSet.remove(currentNode);
-			if (currentNode.equals(end)) {
+			node = openList.remove(0);
+			openSet.remove(node);
+			if (node.equals(end)) {
 				break;
 			}
+			// int[][] allowedMap = getNeighborMap(node.x, node.y);
+			int[][] neighborMap = getNeighborMap(node.x, node.y);
+			// List<int[]> neighborMap = new ArrayList<int[]>();
 
-			for (AStarCellPoint neighborNode : getNeighbors(currentNode, closedSet)) {
-				neighborNode.h = hScore(neighborNode, end);
-				showDebugInfo(neighborNode);
+			// Remove any cells that intersect with VBL
+			// for (int i = 0; i < allowedMap.length; i++) {
+			// int x = node.x + allowedMap[i][0];
+			// int y = node.y + allowedMap[i][1];
+			// AStarCellPoint allowedNode = new AStarCellPoint(x, y);
+			//
+			// Rectangle cellBounds = zone.getGrid().getBounds(allowedNode);
+			// boolean blocksMovement = vbl.intersects(cellBounds);
+			//
+			// // System.out.println("Area bonds: " + vbl.getBounds()); // This is in map coords/grid pixels
+			// System.out.println("x,y:" + x + "," + y + " :: block? " + blocksMovement); // This is in cells, durr
+			// // System.out.println("cell bounds? " + zone.getGrid().getBounds(neighborNode));
+			//
+			// //if (!blocksMovement)
+			// neighborMap.add(new int[] { x, y });
+			// }
 
-				if (openSet.containsKey(neighborNode)) {
-					// check if it is cheaper to get here the way that we just came, versus the previous path
-					AStarCellPoint oldNode = openSet.get(neighborNode);
-					if (neighborNode.g < oldNode.g) {
-						oldNode.g = neighborNode.g;
-						neighborNode = oldNode;
-						neighborNode.parent = currentNode;
-					}
+			// System.out.println("Final list size is: " + neighborMap.size());
+
+			for (int i = 0; i < neighborMap.length; i++) {
+				int x = node.x + neighborMap[i][0];
+				int y = node.y + neighborMap[i][1];
+				AStarCellPoint neighborNode = new AStarCellPoint(x, y);
+				if (closedSet.contains(neighborNode)) {
 					continue;
 				}
 
+				// log.info("isSecondDiag: " + isSecondDiag(node));
+
+				neighborNode.parent = node;
+				neighborNode.g = gScore(node, neighborNode) * 10;
+				neighborNode.h = hScore(neighborNode, end) * 10;
+
+				Rectangle cellBounds = zone.getGrid().getBounds(neighborNode);
+				double perc = 0;
+				
+				if (vbl.intersects(cellBounds)) {
+					Area cellArea = new Area(cellBounds);
+					cellArea.intersect(vbl);
+					Rectangle overlap = cellArea.getBounds();
+					perc = 100 * (area(overlap) / area(cellBounds)); // * 100;
+
+					neighborNode.g = neighborNode.g + 10000;
+					neighborNode.h = neighborNode.h + 10000;
+
+					// log.debug("overlap % = " + perc);
+					// if (perc >= 50) {
+					// neighborNode.gScore = neighborNode.gScore + perc * 1;
+					// neighborNode.hScore = neighborNode.hScore + perc * 1;
+					// log.debug("walking around vbl...");
+					// } else {
+					// neighborNode.gScore = neighborNode.gScore + perc;
+					// neighborNode.hScore = neighborNode.hScore + perc;
+					// }
+				}
+
+				// if(isSecondDiag(node)) {
+				// Label diag = new Label();
+				// diag.setLabel("1.5");
+				// diag.setX(cellBounds.x + 45);
+				// diag.setY(cellBounds.y + 45);
+				// diag.setForegroundColor(Color.RED);
+				// zone.putLabel(diag);
+				// }
+
+				Label gScore = new Label();
+				Label hScore = new Label();
+				Label fScore = new Label();
+
+				gScore.setLabel("" + Math.round(neighborNode.g));
+				gScore.setX(cellBounds.x + 10);
+				gScore.setY(cellBounds.y + 10);
+
+				hScore.setLabel("" + Math.round(neighborNode.h));
+				hScore.setX(cellBounds.x + 35);
+				hScore.setY(cellBounds.y + 10);
+
+				fScore.setLabel("" + Math.round(neighborNode.g + neighborNode.h));
+				fScore.setX(cellBounds.x + 25);
+				fScore.setY(cellBounds.y + 35);
+				fScore.setForegroundColor(Color.RED);
+
+				// zone.putLabel(gScore);
+				// zone.putLabel(hScore);
+				// hScore.setLabel("" + perc);
+				// zone.putLabel(hScore);
+				// zone.putLabel(fScore);
+
+				if (openSet.containsKey(neighborNode)) {
+					AStarCellPoint oldNode = openSet.get(neighborNode);
+					// check if it is cheaper to get here the way that we just
+					// came, versus the previous path
+					if (neighborNode.g < oldNode.g) {
+						oldNode.g = neighborNode.g;
+						neighborNode = oldNode;
+						neighborNode.parent = node;
+					}
+					continue;
+				}
 				pushNode(openList, neighborNode);
 				openSet.put(neighborNode, neighborNode);
 			}
-
-			closedSet.add(currentNode);
-			currentNode = null;
+			closedSet.add(node);
+			node = null;
 		}
-
 		List<CellPoint> ret = new LinkedList<CellPoint>();
-		while (currentNode != null) {
-			ret.add(currentNode);
-			currentNode = currentNode.parent;
+		while (node != null) {
+			ret.add(node);
+			node = node.parent;
 		}
-
 		distance = -1;
 		Collections.reverse(ret);
-		log.info("Time to calculate A* path: " + (System.currentTimeMillis() - timeOut) + "ms");
+		// log.info(ret);
+
 		return ret;
+	}
+
+	private double area(Rectangle r) {
+		return r.getWidth() * r.getHeight();
 	}
 
 	private void pushNode(List<AStarCellPoint> list, AStarCellPoint node) {
@@ -156,8 +232,6 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			}
 		}
 	}
-
-	protected abstract List<AStarCellPoint> getNeighbors(AStarCellPoint node, Set<AStarCellPoint> closedSet);
 
 	protected abstract int calculateDistance(List<CellPoint> path, int feetPerCell);
 
@@ -207,38 +281,5 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			return false;
 		else
 			return true;
-	}
-
-	protected void showDebugInfo(AStarCellPoint node) {
-		if (!log.isDebugEnabled())
-			return;
-
-		Rectangle cellBounds = zone.getGrid().getBounds(node);
-
-		Label gScore = new Label();
-		Label hScore = new Label();
-		Label fScore = new Label();
-
-		gScore.setLabel("" + Math.round(node.g));
-		gScore.setX(cellBounds.x + 10);
-		gScore.setY(cellBounds.y + 10);
-
-		hScore.setLabel("" + Math.round(node.h));
-		hScore.setX(cellBounds.x + 35);
-		hScore.setY(cellBounds.y + 10);
-
-		fScore.setLabel("" + Math.round(node.g + node.h));
-		fScore.setX(cellBounds.x + 25);
-		fScore.setY(cellBounds.y + 35);
-		fScore.setForegroundColor(Color.RED);
-
-		zone.putLabel(gScore);
-		zone.putLabel(hScore);
-		zone.putLabel(fScore);
-
-		// Track labels to delete later
-		debugLabels.add(gScore.getId());
-		debugLabels.add(hScore.getId());
-		debugLabels.add(fScore.getId());
 	}
 }

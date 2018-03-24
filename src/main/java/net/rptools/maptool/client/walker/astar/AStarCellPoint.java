@@ -10,10 +10,11 @@ package net.rptools.maptool.client.walker.astar;
 
 import net.rptools.maptool.model.CellPoint;
 
-public class AStarCellPoint extends CellPoint {
+public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoint> {
 	AStarCellPoint parent;
-	double hScore;
-	double gScore;
+	double h;
+	double g;
+	double f;
 
 	public AStarCellPoint() {
 		super(0, 0);
@@ -28,6 +29,11 @@ public class AStarCellPoint extends CellPoint {
 	}
 
 	public double cost() {
-		return hScore + gScore;
+		return h + g;
+	}
+	
+	@Override
+	public int compareTo(AStarCellPoint other) {
+		return Double.compare(f, other.f);
 	}
 }
