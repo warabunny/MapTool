@@ -25,6 +25,7 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.ToolTipManager;
@@ -101,6 +102,9 @@ public class PreferencesDialog extends JDialog {
 
 		protected abstract void storeSpinnerValue(int value);
 	}
+
+	// Tabbed Panel
+	private final JTabbedPane tabbedPane;
 
 	// Interactions
 	private final JCheckBox newMapsHaveFOWCheckBox;
@@ -209,6 +213,8 @@ public class PreferencesDialog extends JDialog {
 				MapTool.getEventDispatcher().fireEvent(MapTool.PreferencesEvent.Changed);
 			}
 		});
+
+		tabbedPane = panel.getTabbedPane("TabPane");
 
 		forceFacingArrowCheckBox = panel.getCheckBox("forceFacingArrow");
 		showStatSheetCheckBox = panel.getCheckBox("showStatSheet");
@@ -868,15 +874,21 @@ public class PreferencesDialog extends JDialog {
 		fileSyncPath.setText(AppPreferences.getFileSyncPath());
 
 		// get JVM User Defaults/User override preferences
-		jvmXmxTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MAX_MEM));
-		jvmXmsTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MIN_MEM));
-		jvmXssTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.STACK_SIZE));
+		try {
+			jvmXmxTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MAX_MEM));
+			jvmXmsTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MIN_MEM));
+			jvmXssTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.STACK_SIZE));
 
-		jvmAssertionsCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.ASSERTIONS));
-		jvmDirect3dCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_D3D));
-		jvmOpenGLCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_OPENGL_OPTION));
-		jvmInitAwtCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION));
-		// jvmEnableHidpiCheckbox.setSelected(UserJvmPrefs.hasJvmOption(TBD));
+			jvmAssertionsCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.ASSERTIONS));
+			jvmDirect3dCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_D3D));
+			jvmOpenGLCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_OPENGL_OPTION));
+			jvmInitAwtCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION));
+			// jvmEnableHidpiCheckbox.setSelected(UserJvmPrefs.hasJvmOption(TBD));
+		} catch (UnsatisfiedLinkError ule) {
+			log.error("Error setting JVM options from preferences. Most likely cause, manual launch of JAR.", ule);
+			tabbedPane.setEnabledAt(tabbedPane.indexOfTab("Startup"), false);
+
+		}
 
 		Integer rawVal = AppPreferences.getTypingNotificationDuration();
 		Integer typingVal = null;
