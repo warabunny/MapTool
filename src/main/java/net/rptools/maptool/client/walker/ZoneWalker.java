@@ -8,6 +8,7 @@
  */
 package net.rptools.maptool.client.walker;
 
+import net.rptools.maptool.client.ui.zone.RenderPathWorker;
 import net.rptools.maptool.model.CellPoint;
 import net.rptools.maptool.model.Path;
 
@@ -18,11 +19,15 @@ public interface ZoneWalker {
 
 	public CellPoint replaceLastWaypoint(CellPoint point);
 
+	public CellPoint replaceLastWaypoint(CellPoint point, boolean restrictMovement);
+
 	public boolean isWaypoint(CellPoint point);
 
 	public int getDistance();
 
 	public Path<CellPoint> getPath();
+
+	public Path<CellPoint> getPath(RenderPathWorker renderPathWorker);
 
 	public CellPoint getLastPoint();
 

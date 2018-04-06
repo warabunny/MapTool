@@ -8,9 +8,6 @@
  */
 package net.rptools.maptool.client.walker.astar;
 
-import java.util.List;
-import java.util.Set;
-
 import net.rptools.maptool.model.Zone;
 
 public class AStarVertHexEuclideanWalker extends AbstractAStarHexEuclideanWalker {
@@ -36,11 +33,4 @@ public class AStarVertHexEuclideanWalker extends AbstractAStarHexEuclideanWalker
 
 		return x % 2 == 0 ? evenNeighborMap : oddNeighborMap;
 	}
-
-	@Override
-	protected List<AStarCellPoint> getNeighbors(AStarCellPoint node, Set<AStarCellPoint> closedSet) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

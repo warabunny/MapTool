@@ -13,6 +13,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -60,10 +61,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TooManyListenersException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -164,6 +171,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 	private final List<TokenLocation> markerLocationList = new ArrayList<TokenLocation>();
 	private GeneralPath facingArrow;
 	private final List<Token> showPathList = new ArrayList<Token>();
+	private boolean showAllPaths = true; // Jamz: new option to show path
 	// Optimizations
 	private final Map<GUID, BufferedImage> labelRenderingCache = new HashMap<GUID, BufferedImage>();
 	private final Map<Token, BufferedImage> replacementImageMap = new HashMap<Token, BufferedImage>();
@@ -340,6 +348,11 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		return false;
 	}
 
+	// restrictMovement tells A* Pathfinding AI to use VBL & Terrain to restrict movement
+	public void addMoveSelectionSet(String playerId, GUID keyToken, Set<GUID> tokenList, boolean clearLocalSelected, boolean restrictMovement) {
+		addMoveSelectionSet(playerId, keyToken, tokenList, clearLocalSelected);
+	}
+
 	public void addMoveSelectionSet(String playerId, GUID keyToken, Set<GUID> tokenList, boolean clearLocalSelected) {
 		// I'm not supposed to be moving a token when someone else is already moving it
 		if (clearLocalSelected) {
@@ -438,6 +451,8 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 				originPoint = new ZonePoint(keyToken.getX(), keyToken.getY());
 
 			Path<? extends AbstractPoint> path = set.getWalker() != null ? set.getWalker().getPath() : set.gridlessPath;
+			// Jamz: add final path render here?
+
 			List<GUID> filteredTokens = new ArrayList<GUID>();
 			BigDecimal tmc = null;
 			moveTimer.stop("setup");
@@ -485,6 +500,8 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 
 				if (token.hasVBL())
 					vblTokenMoved = true;
+
+				// renderPath((Graphics2D) this.getGraphics(), path, token.getFootprint(zone.getGrid()));
 			}
 			moveTimer.stop("eachtoken");
 
@@ -1569,6 +1586,17 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 	Integer fogX = null;
 	Integer fogY = null;
 
+	private static RenderPathWorker task;
+	private static Path<? extends AbstractPoint> renderedPath;
+
+	public static Path<? extends AbstractPoint> getRenderedPath() {
+		return renderedPath;
+	}
+
+	public static void setRenderedPath(Path<? extends AbstractPoint> renderedPath) {
+		ZoneRenderer.renderedPath = renderedPath;
+	}
+
 	private Area renderFog(Graphics2D g, PlayerView view) {
 		Dimension size = getSize();
 		Area fogClip = new Area(new Rectangle(0, 0, size.width, size.height));
@@ -2148,8 +2176,15 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		}
 	}
 
+	private static RenderPathWorker renderPathWorker;
+	ExecutorService pathExecutor = Executors.newSingleThreadExecutor();
+
+	// Jamz: HERE BE RENDERING!
 	@SuppressWarnings("unchecked")
 	public void renderPath(Graphics2D g, Path<? extends AbstractPoint> path, TokenFootprint footprint) {
+		if (path == null)
+			return;
+
 		Object oldRendering = g.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -2159,8 +2194,9 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		Grid grid = zone.getGrid();
 		double scale = getScale();
 
-		Rectangle footprintBounds = footprint.getBounds(grid);
+		log.info("Rendering path..." + System.currentTimeMillis());
 
+		Rectangle footprintBounds = footprint.getBounds(grid);
 		if (path.getCellPath().get(0) instanceof CellPoint) {
 			timer.start("renderPath-1");
 			CellPoint previousPoint = null;
@@ -2188,6 +2224,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 				waypointList.remove(waypointList.size() - 1);
 			}
 			timer.stop("renderPath-1");
+			// log.info("pathSet size: " + pathSet.size());
 
 			timer.start("renderPath-2");
 			Dimension cellOffset = zone.getGrid().getCellOffset();
@@ -2195,8 +2232,10 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 				ZonePoint zp = grid.convert(p);
 				zp.x += grid.getCellWidth() / 2 + cellOffset.width;
 				zp.y += grid.getCellHeight() / 2 + cellOffset.height;
-				highlightCell(g, zp, grid.getCellHighlight(), 1.0f);
+				highlightCell(g, zp, grid.getCellHighlight(), 1.0f, p.getDistanceTraveled(zone));
+				// log.info("p.getDistanceTraveled(zone): " + p.getDistanceTraveled(zone));
 			}
+			int w = 0;
 			for (ZonePoint p : waypointList) {
 				ZonePoint zp = new ZonePoint(p.x + cellOffset.width, p.y + cellOffset.height);
 				highlightCell(g, zp, AppStyle.cellWaypointImage, .333f);
@@ -2317,6 +2356,45 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		ScreenPoint sp = ScreenPoint.fromZonePoint(this, point);
 
 		g.drawImage(image, (int) (sp.x - iwidth / 2), (int) (sp.y - iheight / 2), (int) iwidth, (int) iheight, this);
+	}
+
+	public void highlightCell(Graphics2D g, ZonePoint point, BufferedImage image, float size, double distance) {
+		Grid grid = zone.getGrid();
+		double cwidth = grid.getCellWidth() * getScale();
+		double cheight = grid.getCellHeight() * getScale();
+
+		double iwidth = cwidth * size;
+		double iheight = cheight * size;
+
+		String distanceText = "" + (int) distance;
+
+		ScreenPoint sp = ScreenPoint.fromZonePoint(this, point);
+
+		int cellX = (int) (sp.x - iwidth / 2);
+		int cellY = (int) (sp.y - iheight / 2);
+
+		g.drawImage(image, (int) (sp.x - iwidth / 2), (int) (sp.y - iheight / 2), (int) iwidth, (int) iheight, this);
+
+		if (distance == 0)
+			return;
+
+		// Draw distance for each cell
+		int fontSize = (int) (getScale() * 12);
+		int textOffset = (int) (getScale() * 7); // 7 pixels at 100% zoom
+
+		Font font = new Font(Font.DIALOG, Font.BOLD, fontSize);
+		Font originalFont = g.getFont();
+
+		FontMetrics fm = g.getFontMetrics(font);
+		int textWidth = fm.stringWidth(distanceText);
+
+		g.setFont(font);
+		g.setColor(Color.BLACK);
+
+		// log.info("Text: [" + distanceText + "], width: " + textWidth + ", font size: " + fontSize + ", offset: " + textOffset);
+
+		g.drawString(distanceText, (int) (cellX + cwidth - textWidth - textOffset), (int) (cellY + cheight - textOffset));
+		g.setFont(originalFont);
 	}
 
 	/**
@@ -3604,6 +3682,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		// Pixel distance from keyToken's origin
 		private int offsetX;
 		private int offsetY;
+		private boolean restrictMovement = true;
 
 		public SelectionSet(String playerId, GUID tokenGUID, Set<GUID> selectionList) {
 			selectionSet.addAll(selectionList);
@@ -3617,6 +3696,9 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 					CellPoint tokenPoint = zone.getGrid().convert(new ZonePoint(token.getX(), token.getY()));
 
 					walker = zone.getGrid().createZoneWalker();
+
+					// task = new RenderPathWorker(walker, tokenPoint, tokenPoint);
+					// task.execute();
 					walker.setWaypoints(tokenPoint, tokenPoint);
 				}
 			} else {
@@ -3653,7 +3735,9 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			ZonePoint zp = new ZonePoint(token.getX() + x, token.getY() + y);
 			if (ZoneRenderer.this.zone.getGrid().getCapabilities().isPathingSupported() && token.isSnapToGrid()) {
 				CellPoint point = zone.getGrid().convert(zp);
-				walker.replaceLastWaypoint(point);
+				// task = new RenderPathWorker(walker, point, restrictMovement);
+				// task.execute();
+				walker.replaceLastWaypoint(point, restrictMovement);
 			} else {
 				if (gridlessPath.getCellPath().size() > 1) {
 					gridlessPath.replaceLastPoint(zp);
@@ -3779,6 +3863,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			this.bounds = bounds;
 			this.label = label;
 		}
+
 	}
 
 	//

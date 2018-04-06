@@ -24,9 +24,12 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.awt.ShapeReader;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 
 import net.rptools.maptool.client.MapTool;
-import net.rptools.maptool.client.ui.zone.ZoneRenderer;
+import net.rptools.maptool.client.ui.zone.RenderPathWorker;
 import net.rptools.maptool.client.walker.AbstractZoneWalker;
 import net.rptools.maptool.model.CellPoint;
 import net.rptools.maptool.model.GUID;
@@ -40,10 +43,16 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		super(zone);
 	}
 
-	private int distance = -1;
-	private List<GUID> debugLabels;
+	protected Area vbl = new Area();
+	protected double normal_cost = 1; // zone.getUnitsPerCell();
 
-	protected Area vbl;
+	double distance = -1;
+	private List<GUID> debugLabels;
+	private boolean debugCosts = false; // Manually set this to view g & G costs as rendered labels
+
+	protected final GeometryFactory geometryFactory = new GeometryFactory();
+	protected ShapeReader shapeReader = new ShapeReader(geometryFactory);
+	protected Geometry vblGeometry = null;
 
 	/**
 	 * Returns the list of neighbor cells that are valid for being movement-checked. This is an array of (x,y) offsets (see the constants in this class) named as compass points.
@@ -66,30 +75,56 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		if (debugLabels == null)
 			debugLabels = new ArrayList<GUID>();
 
+		if (start.equals(end))
+			log.info("NO WORK!");
+
 		openList.add(new AStarCellPoint(start));
 		openSet.put(openList.get(0), openList.get(0));
 
 		AStarCellPoint currentNode = null;
+
 		// Get current VBL for map...
+		// FIXME: Reduce VBL to bounds...?? sub millisecond performance, don't need!?
+		// Using JTS because AWT Area can only intersect with Area and we want to use simple lines here.
+		// Render VBL to Geometry class once and store. FIXME: Add to Zone and refresh on Topology...
 		vbl = MapTool.getFrame().getCurrentZoneRenderer().getZoneView().getTopologyTree().getArea();
+		if (!vbl.isEmpty()) {
+			try {
+				vblGeometry = shapeReader.read(vbl.getPathIterator(null)).buffer(1); // .buffer helps creating valid geometry and prevent self-intersecting polygons
+				if (!vblGeometry.isValid())
+					log.info("vblGeometry is invalid! May cause issues. Check for self-intersecting polygons.");
+			} catch (Exception e) {
+				log.info("vblGeometry oh oh: ", e);
+			}
+
+			// log.info("vblGeometry bounds: " + vblGeometry.toString());
+		}
 
 		// Erase previous debug labels, this actually erases ALL labels!
-		if (!zone.getLabels().isEmpty()) {
+		if (!zone.getLabels().isEmpty() && debugCosts) {
 			for (Label label : zone.getLabels()) {
 				zone.removeLabel(label.getId());
 			}
 		}
 
 		// If debug is enabled, MapTool is pretty busy so...
-		double estimatedTimeoutNeeded = 50;
+		double estimatedTimeoutNeeded;
 		if (log.isDebugEnabled()) {
-			estimatedTimeoutNeeded = hScore(start, end) * 10;
-			log.debug("A* Path timeout estimate: " + estimatedTimeoutNeeded);
+			estimatedTimeoutNeeded = hScore(start, end) * 20;
+		} else {
+			estimatedTimeoutNeeded = Math.max(hScore(start, end) / 5, 10000);
 		}
 
+		// Timeout quicker for GM cause reasons
+		if (MapTool.getPlayer().isGM())
+			estimatedTimeoutNeeded = estimatedTimeoutNeeded / 2;
+
+		// log.info("A* Path timeout estimate: " + estimatedTimeoutNeeded);
+
+		boolean cancelled = false;
 		while (!openList.isEmpty()) {
 			if (System.currentTimeMillis() > timeOut + estimatedTimeoutNeeded) {
-				log.info("Timing out...");
+				log.info("Timing out after " + estimatedTimeoutNeeded);
 				break;
 			}
 
@@ -99,6 +134,12 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 				break;
 			}
 
+			// if(vbl.contains(currentNode.toPoint()))
+			// break;
+
+			// if(vbl.contains(start.x, start.y))
+			// return null;
+
 			for (AStarCellPoint neighborNode : getNeighbors(currentNode, closedSet)) {
 				neighborNode.h = hScore(neighborNode, end);
 				showDebugInfo(neighborNode);
@@ -106,8 +147,8 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 				if (openSet.containsKey(neighborNode)) {
 					// check if it is cheaper to get here the way that we just came, versus the previous path
 					AStarCellPoint oldNode = openSet.get(neighborNode);
-					if (neighborNode.g < oldNode.g) {
-						oldNode.g = neighborNode.g;
+					if (neighborNode.getG() < oldNode.getG()) {
+						oldNode.replaceG(neighborNode);
 						neighborNode = oldNode;
 						neighborNode.parent = currentNode;
 					}
@@ -120,6 +161,29 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 			closedSet.add(currentNode);
 			currentNode = null;
+
+			// down stream SwingWorker. Need to cancel here if called
+
+			if (Thread.interrupted()) {
+				log.info("Thread interrupted!");
+			} else {
+				// log.info("Thread NOT interrupted...");
+			}
+			if (renderPathWorker != null) {
+				if (renderPathWorker.isCancelled()) {
+					log.info("***** renderPathWorker cancelled called! " + renderPathWorker.isCancelled());
+					cancelled = true;
+					openList.clear();
+				} else {
+					// log.info("***** renderPathWorker.getState " + renderPathWorker.getState());
+					// log.info("***** renderPathWorker.isWorking " + RenderPathWorker.isWorking);
+				}
+			} else {
+				// log.info("renderPathWorker null? " + (renderPathWorker == null));
+				// log.info("***** renderPathWorker.isWorking " + RenderPathWorker.isWorking);
+				// why is this null!?!?!?!
+			}
+
 		}
 
 		List<CellPoint> ret = new LinkedList<CellPoint>();
@@ -128,13 +192,21 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			currentNode = currentNode.parent;
 		}
 
-		distance = -1;
+		// distance = -1;
+		// Jamz We don't need to "calculate" distance after the fact as it's already stored as the G cost...
+		// mmm ok have to deal with this and waypoints reset this...
+		if (!ret.isEmpty())
+			distance = ret.get(0).getDistanceTraveled(zone);
+		else
+			distance = 0;
+
 		Collections.reverse(ret);
-		log.info("Time to calculate A* path: " + (System.currentTimeMillis() - timeOut) + "ms");
+		// log.info("Time to calculate A* path: " + (System.currentTimeMillis() - timeOut) + "ms");
+		RenderPathWorker.isWorking = false;
 		return ret;
 	}
 
-	private void pushNode(List<AStarCellPoint> list, AStarCellPoint node) {
+	void pushNode(List<AStarCellPoint> list, AStarCellPoint node) {
 		if (list.isEmpty()) {
 			list.add(node);
 			return;
@@ -169,67 +241,34 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		if (distance == -1) {
 			distance = calculateDistance(getPath().getCellPath(), getZone().getUnitsPerCell());
 		}
-		return distance;
-	}
 
-	protected boolean isSecondDiag(AStarCellPoint node) {
-		List<CellPoint> path = new LinkedList<CellPoint>();
-		while (node != null) {
-			path.add(node);
-			node = node.parent;
-		}
+		// log.info("Feet Distance is " + distance * getZone().getUnitsPerCell());
 
-		if (path == null || path.size() == 0)
-			return false;
-
-		int numDiag = 0;
-
-		CellPoint previousPoint = null;
-		for (CellPoint point : path) {
-			if (previousPoint != null) {
-				int change = Math.abs(previousPoint.x - point.x) + Math.abs(previousPoint.y - point.y);
-
-				switch (change) {
-				case 1:
-					break;
-				case 2:
-					numDiag++;
-					break;
-				default:
-					assert false : String.format("Illegal path, cells are not contiguous; change=%d", change);
-					return false;
-				}
-			}
-			previousPoint = point;
-		}
-
-		if ((numDiag % 2) == 0)
-			return false;
-		else
-			return true;
+		return (int) distance; // * getZone().getUnitsPerCell();
 	}
 
 	protected void showDebugInfo(AStarCellPoint node) {
-		if (!log.isDebugEnabled())
+		if (!log.isDebugEnabled() && !debugCosts)
 			return;
 
 		Rectangle cellBounds = zone.getGrid().getBounds(node);
+		DecimalFormat f = new DecimalFormat("##.00");
 
 		Label gScore = new Label();
 		Label hScore = new Label();
 		Label fScore = new Label();
 
-		gScore.setLabel("" + Math.round(node.g));
+		gScore.setLabel(f.format(node.getG()));
 		gScore.setX(cellBounds.x + 10);
 		gScore.setY(cellBounds.y + 10);
 
-		hScore.setLabel("" + Math.round(node.h));
+		hScore.setLabel(f.format(node.h));
 		hScore.setX(cellBounds.x + 35);
 		hScore.setY(cellBounds.y + 10);
 
-		fScore.setLabel("" + Math.round(node.g + node.h));
+		fScore.setLabel(f.format(node.cost()));
 		fScore.setX(cellBounds.x + 25);
-		fScore.setY(cellBounds.y + 35);
+		fScore.setY(cellBounds.y + 25);
 		fScore.setForegroundColor(Color.RED);
 
 		zone.putLabel(gScore);

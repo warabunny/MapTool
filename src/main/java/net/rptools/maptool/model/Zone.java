@@ -1391,6 +1391,15 @@ public class Zone extends BaseModel {
 		});
 	}
 
+	public List<Token> getTokensWithTerrainModifiers() {
+		return getTokensFiltered(new Filter() {
+			@Override
+			public boolean matchToken(Token t) {
+				return t.getTerrainModifier() != 1.0f;
+			}
+		});
+	}
+
 	/**
 	 * This method is called when no tokens are selected and it determines which tokens FoW to show. New buttons were added to select what type of tokens, by ownership, should be shown and driven by
 	 * the TokenSelection enum.

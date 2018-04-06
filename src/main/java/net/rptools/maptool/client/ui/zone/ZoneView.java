@@ -33,8 +33,6 @@ import javax.swing.SwingWorker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.oracle.tools.packager.Log;
-
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;

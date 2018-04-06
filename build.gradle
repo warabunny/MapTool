@@ -219,6 +219,12 @@ dependencies {
 	compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
 	compile "com.badlogicgames.box2dlights:box2dlights:$box2DLightsVersion"
 
+	// https://mvnrepository.com/artifact/org.locationtech.jts/jts-core
+	// https://locationtech.github.io/jts/jts-features.html
+	compile group: 'org.locationtech.jts', name: 'jts-core', version: '1.15.0'
+	// https://mvnrepository.com/artifact/org.locationtech.jts/jts
+	//compile group: 'org.locationtech.jts', name: 'jts', version: '1.15.0', ext: 'pom'
+
 	// Not in use at this time, left for easy reference later...
 	//compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
 	//compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
@@ -316,7 +322,7 @@ task deploy(dependsOn: [displayGitInfo, uberJar, copyPackageExtras, prepareInnoS
 				"-appclass", mainClassName,
 				"-srcdir", "build/libs",
 				"-outdir", "releases/release-"+version,
-				"-outfile", project.name,
+				"-outfile", vendor + "-" + project.name,
 				"-name", project.name,
 				"-title", project.name,
 				"-vendor", vendor,

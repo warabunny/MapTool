@@ -8,13 +8,17 @@
  */
 package net.rptools.maptool.client.walker.astar;
 
+import java.awt.Rectangle;
+import java.awt.geom.Point2D;
+
 import net.rptools.maptool.model.CellPoint;
+import net.rptools.maptool.model.Zone;
 
 public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoint> {
 	AStarCellPoint parent;
 	double h;
-	double g;
 	double f;
+	double terrainModifier;
 
 	public AStarCellPoint() {
 		super(0, 0);
@@ -25,11 +29,25 @@ public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoi
 	}
 
 	public AStarCellPoint(CellPoint p) {
+		super(p.x, p.y, p.distanceTraveled);
+	}
+
+	public AStarCellPoint(CellPoint p, double mod) {
 		super(p.x, p.y);
+		terrainModifier = mod;
 	}
 
 	public double cost() {
-		return h + g;
+		return h + getG();
+	}
+
+	public Point2D toPoint() {
+		return new Point2D.Double(x, y);
+	}
+
+	public Point2D toCenterPoint(Zone zone) {
+		Rectangle bounds = zone.getGrid().getBounds(this);
+		return new Point2D.Double(bounds.getCenterX(), bounds.getCenterY());
 	}
 
 	@Override

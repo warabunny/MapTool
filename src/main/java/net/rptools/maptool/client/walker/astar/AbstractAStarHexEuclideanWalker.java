@@ -8,7 +8,10 @@
  */
 package net.rptools.maptool.client.walker.astar;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import net.rptools.maptool.model.CellPoint;
 import net.rptools.maptool.model.Zone;
@@ -53,5 +56,52 @@ public abstract class AbstractAStarHexEuclideanWalker extends AbstractAStarWalke
 	protected int calculateDistance(List<CellPoint> path, int feetPerCell) {
 		int cellsMoved = path != null && path.size() > 1 ? path.size() - 1 : 0;
 		return cellsMoved * feetPerCell;
+	}
+
+	@Override
+	protected List<AStarCellPoint> getNeighbors(AStarCellPoint node, Set<AStarCellPoint> closedSet) {
+		List<AStarCellPoint> neighbors = new ArrayList<AStarCellPoint>();
+		int[][] neighborMap = getNeighborMap(node.x, node.y);
+
+		// Find all the neighbors.
+		for (int[] i : neighborMap) {
+			// double terrainModifier = 0;
+
+			AStarCellPoint neighbor = new AStarCellPoint(node.x + i[0], node.y + i[1]);
+
+			if (closedSet.contains(neighbor))
+				continue;
+
+			// Add the cell we're coming from
+			neighbor.parent = node;
+
+			// // Don't count VBL or Terrain Modifiers
+			// if (restrictMovement) {
+			// // VBL Check FIXME: Add to closed set?
+			// if (vblBlocksMovement(node, neighbor)) {
+			// closedSet.add(node);
+			// continue;
+			// }
+			//
+			// // FIXME: add Occupied cell!
+			// // Check for terrain modifiers
+			// for (AStarCellPoint cell : terrainCells) {
+			// if (cell.equals(neighbor)) {
+			// terrainModifier += cell.terrainModifier;
+			// // log.info("terrainModifier for " + cell + " = " + cell.terrainModifier);
+			// }
+			// }
+			// }
+			//
+			// if (terrainModifier == 0)
+			// terrainModifier = 1;
+
+			neighbor.g = node.g + normal_cost;
+			neighbor.distanceTraveled = neighbor.g;
+			neighbors.add(neighbor);
+			// log.info("neighbor.g: " + neighbor.getG());
+		}
+
+		return neighbors;
 	}
 }
