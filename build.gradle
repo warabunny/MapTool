@@ -199,7 +199,7 @@ dependencies {
 	compile 'org.apache.pdfbox:pdfbox:2.0.0'
 	compile 'org.apache.pdfbox:pdfbox-tools:2.0.0'								// Dependency for pdfbox
 	compile 'org.bouncycastle:bcmail-jdk15on:1.54'								// To decrypt passworded/secured pdf's
-	compile 'com.github.jai-imageio:jai-imageio-core:1.3.1'						// For pdf image extraction, specifically for jpeg2000 (jpx) support.
+	compile 'com.github.jai-imageio:jai-imageio-core:1.4.0'						// For pdf image extraction, specifically for jpeg2000 (jpx) support.
 	compile 'com.github.jai-imageio:jai-imageio-jpeg2000:1.3.0'					// For pdf image extraction, specifically for jpeg2000 (jpx) support.
 
 	// For syntax highlighting in macro editor
