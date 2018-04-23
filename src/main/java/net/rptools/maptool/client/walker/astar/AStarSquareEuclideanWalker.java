@@ -10,17 +10,20 @@ package net.rptools.maptool.client.walker.astar;
 
 import java.awt.Rectangle;
 import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.locationtech.jts.awt.ShapeReader;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
+
+import com.google.common.base.Stopwatch;
 
 import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.walker.WalkerMetric;
@@ -90,13 +93,17 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 	@Override
 	protected List<AStarCellPoint> getNeighbors(AStarCellPoint node, Set<AStarCellPoint> closedSet) {
 		List<AStarCellPoint> neighbors = new ArrayList<AStarCellPoint>();
-		int[][] neighborMap = getNeighborMap(node.x, node.y);
+		int[][] neighborMap = getNeighborMap(node.x, node.y); // FIXME: Larger map needed for larger tokens!
 
 		// Find all the neighbors.
 		for (int[] i : neighborMap) {
 			double terrainModifier = 0;
+			boolean blockNode = false;
 
 			AStarCellPoint neighbor = new AStarCellPoint(node.x + i[0], node.y + i[1]);
+			Set<CellPoint> occupiedCells = footprint.getOccupiedCells(node);
+			// Rectangle footprintBounds = footprint.getBounds(zone.getGrid(), node);
+			// log.info("footprintBounds: " + footprintBounds);
 
 			if (closedSet.contains(neighbor))
 				continue;
@@ -107,11 +114,32 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 			// restrictMovement = false; // TURN OFF AI
 			// Don't count VBL or Terrain Modifiers
 			if (restrictMovement) {
-				// VBL Check FIXME: Add to closed set?
-				if (vblBlocksMovement(node, neighbor)) {
-					closedSet.add(node);
-					continue;
+				// log.info("footprint: " + footprint.getOccupiedCells(node));
+				for (CellPoint cellPoint : occupiedCells) {
+					AStarCellPoint occupiedNode = new AStarCellPoint(cellPoint);
+
+					// FIXME: This is slow as shit for huge+
+					// log.info("node: " + node);
+					// log.info("occupiedNode: " + occupiedNode);
+					// log.info("neighbor: " + neighbor);
+
+					// VBL Check FIXME: Add to closed set?
+					if (vblBlocksMovement(occupiedNode, neighbor)) {
+						closedSet.add(occupiedNode);
+						blockNode = true;
+						break;
+					}
+
 				}
+
+				// if (vblBlocksMovement(node, neighbor)) {
+				// closedSet.add(node);
+				// blockNode = true;
+				// //continue; // need?
+				// }
+
+				if (blockNode)
+					continue;
 
 				// FIXME: add Occupied cell!
 				// Check for terrain modifiers
@@ -143,11 +171,36 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 	}
 
 	private boolean vblBlocksMovement(AStarCellPoint start, AStarCellPoint goal) {
+		// MapTool.getFrame().getCurrentZoneRenderer().setShape(null);
+		// MapTool.getFrame().getCurrentZoneRenderer().setShape2(null);
+
 		if (vblGeometry == null)
 			return false;
 
+		Stopwatch stopwatch = Stopwatch.createStarted();
+		AStarCellPoint checkNode = checkedList.get(goal);
+		if (checkNode != null) {
+			Boolean test = checkNode.isValidMove(start);
+			
+			// if it's null then the test for that direction hasn't been set yet otherwise just return the previous result
+			if(test != null) {
+				// log.info("Time to retrieve: " + stopwatch.elapsed(TimeUnit.NANOSECONDS));
+				avgRetrieveTime += stopwatch.elapsed(TimeUnit.NANOSECONDS);
+				retrievalCount++;
+				return test;
+			} else {
+				// Copies all previous checks to save later...
+				goal = checkNode;
+			}
+		}
+
 		Rectangle startBounds = zone.getGrid().getBounds(start);
 		Rectangle goalBounds = zone.getGrid().getBounds(goal);
+
+		// Rectangle startBounds = footprint.getBounds(zone.getGrid(), start);
+		// Rectangle goalBounds = footprint.getBounds(zone.getGrid(), goal);
+		// log.info("startbounds: " + startBounds);
+		// log.info("goalbounds: " + goalBounds);
 
 		if (goalBounds.isEmpty() || startBounds.isEmpty())
 			return false;
@@ -156,21 +209,76 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 		if (!vbl.intersects(startBounds) && !vbl.intersects(goalBounds))
 			return false;
 
-		double x1 = startBounds.getCenterX();
-		double y1 = startBounds.getCenterY();
-		double x2 = goalBounds.getCenterX();
-		double y2 = goalBounds.getCenterY();
+		// log.info("start: " + start);
+		// log.info("goal: " + goal);
 
 		// If the goal center point is in vbl, allow to maintain path through vbl (should be GM only?)
 		if (vbl.contains(goal.toPoint())) {
 			// Allow GM to move through VBL
-			return !MapTool.getPlayer().isGM();
+			// return !MapTool.getPlayer().isGM();
 		}
+
+		// NEW WAY - use polygon test
+		int gridOffset = zone.getGrid().getSize() / 2;
+		// gridOffset = 0;
+
+		// // just check the end goal?
+		// Path2D goalPath = new Path2D.Double();
+		// goalPath.moveTo(goalBounds.getX() + gridOffset, goalBounds.getY() + gridOffset);
+		// goalPath.lineTo(goalBounds.getMaxX() - gridOffset, goalBounds.getMaxY() - gridOffset);
+		// goalPath.lineTo(goalBounds.getMaxX() - gridOffset, goalBounds.getMaxY() - gridOffset);
+		// goalPath.lineTo(goalBounds.getX() + gridOffset, goalBounds.getY() + gridOffset);
+		// goalPath.closePath();
+		//
+		// Area goalArea = new Area(goalPath);
+		// goalArea.intersect(vbl);
+		// if (!goalArea.isEmpty())
+		// return true;
+		//
+		//
+		// // cross the path test?
+		// Path2D travelPath = new Path2D.Double();
+		// travelPath.moveTo(startBounds.getX() + gridOffset, startBounds.getY() + gridOffset);
+		// travelPath.lineTo(startBounds.getMaxX() - gridOffset, startBounds.getMaxY() - gridOffset);
+		// travelPath.lineTo(goalBounds.getMaxX() - gridOffset, goalBounds.getMaxY() - gridOffset);
+		// travelPath.lineTo(goalBounds.getX() + gridOffset, goalBounds.getY() + gridOffset);
+		// travelPath.closePath();
+		//
+		// Area travelArea = new Area(travelPath);
+		// log.info("travelArea: " + travelPath.getBounds());
+
+		// single cell ray test
+		// Path2D travelPath = new Path2D.Double();
+		// travelPath.moveTo(startBounds.getX() + gridOffset, startBounds.getY() + gridOffset);
+		// travelPath.lineTo(goalBounds.getX() + gridOffset, goalBounds.getY() + gridOffset);
+		// travelPath.lineTo(goalBounds.getX() + 1 + gridOffset, goalBounds.getY() + 1 + gridOffset);
+		// travelPath.closePath();
+		// Area travelArea = new Area(travelPath);
+
+		// MapTool.getFrame().getCurrentZoneRenderer().drawText("YO!", startBounds.x, startBounds.y);
+		// MapTool.getFrame().getCurrentZoneRenderer().drawShape(travelPath, startBounds.x, startBounds.y);
+		// MapTool.getFrame().getCurrentZoneRenderer().setShape(travelPath);
+
+		// travelArea.intersect(vbl);
+
+		// Shape test = MapTool.getFrame().getCurrentZoneRenderer().getShape2();
+		// Area a = new Area(test);
+		// a.add(travelArea);
+		// MapTool.getFrame().getCurrentZoneRenderer().setShape2(a);
+
+		// return !travelArea.isEmpty();
 
 		// Ok, now we have to check from cell to cell for partial vbl.
 		// Basically, we will cast a few rays and see if the previous cell can "see" the new cell...
 		// For now, we'll assume center to center?
 
+		// OLD WAY
+		
+
+		double x1 = startBounds.getCenterX();
+		double y1 = startBounds.getCenterY();
+		double x2 = goalBounds.getCenterX();
+		double y2 = goalBounds.getCenterY();
 		LineString centerRay = geometryFactory.createLineString(new Coordinate[] { new Coordinate(x1, y1), new Coordinate(x2, y2) });
 		// log.info("centerRay: " + centerRay);
 
@@ -189,7 +297,12 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 			return true;
 		}
 
-		// log.info("Time to test: " + (System.currentTimeMillis() - startTimer));
+		//log.info("Time to test: " + stopwatch.elapsed(TimeUnit.NANOSECONDS));
+		avgTestTime += stopwatch.elapsed(TimeUnit.NANOSECONDS);
+		testCount++;
+		
+		goal.setValidMove(start, blocksMovement);
+		checkedList.put(goal, goal);
 
 		return blocksMovement;
 	}
@@ -287,4 +400,5 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 		}
 		return feetDistance;
 	}
+
 }

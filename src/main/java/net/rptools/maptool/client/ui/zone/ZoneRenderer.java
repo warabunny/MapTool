@@ -13,7 +13,6 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -40,6 +39,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Point2D;
 import java.awt.geom.QuadCurve2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -61,17 +61,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TooManyListenersException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
 import javax.imageio.ImageIO;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -105,6 +99,7 @@ import net.rptools.maptool.client.ui.token.AbstractTokenOverlay;
 import net.rptools.maptool.client.ui.token.BarTokenOverlay;
 import net.rptools.maptool.client.ui.token.NewTokenDialog;
 import net.rptools.maptool.client.walker.ZoneWalker;
+import net.rptools.maptool.client.walker.astar.AStarCellPoint;
 import net.rptools.maptool.model.AbstractPoint;
 import net.rptools.maptool.model.Asset;
 import net.rptools.maptool.model.AssetManager;
@@ -141,12 +136,10 @@ import net.rptools.parser.ParserException;
 /**
  */
 public class ZoneRenderer extends JComponent implements DropTargetListener, Comparable<ZoneRenderer> {
-
-	private static final Color TRANSLUCENT_YELLOW = new Color(Color.yellow.getRed(), Color.yellow.getGreen(),
-			Color.yellow.getBlue(), 50);
 	private static final long serialVersionUID = 3832897780066104884L;
-
 	private static final Logger log = LogManager.getLogger(ZoneRenderer.class);
+
+	private static final Color TRANSLUCENT_YELLOW = new Color(Color.yellow.getRed(), Color.yellow.getGreen(), Color.yellow.getBlue(), 50);
 
 	public static final int MIN_GRID_SIZE = 10;
 	private static LightSourceIconOverlay lightSourceIconOverlay = new LightSourceIconOverlay();
@@ -361,7 +354,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			}
 		}
 		selectionSetMap.put(keyToken, new SelectionSet(playerId, keyToken, tokenList));
-		repaint();
+		repaint(); // Jamz: Seems to have no affect?
 	}
 
 	public boolean hasMoveSelectionSetMoved(GUID keyToken, ZonePoint point) {
@@ -383,7 +376,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		}
 		Token token = zone.getToken(keyToken);
 		set.setOffset(offset.x - token.getX(), offset.y - token.getY());
-		repaint();
+		// repaint();
 	}
 
 	public void toggleMoveSelectionSetWaypoint(GUID keyToken, ZonePoint location) {
@@ -1039,12 +1032,17 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		// @formatter:on
 
 		if (visibleScreenArea == null && zoneView.isUsingVision()) {
+			timer.start("ZoneRenderer-getVisibleArea");
 			Area a = zoneView.getVisibleArea(view);
+			timer.stop("ZoneRenderer-getVisibleArea");
+
+			timer.start("createTransformedArea");
 			if (a != null && !a.isEmpty())
 				visibleScreenArea = a.createTransformedArea(af);
+			timer.stop("createTransformedArea");
 		}
-		timer.stop("calcs-1");
 
+		timer.stop("calcs-1");
 		timer.start("calcs-2");
 		{
 			// renderMoveSelectionSet() requires exposedFogArea to be properly set
@@ -1586,17 +1584,6 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 	Integer fogX = null;
 	Integer fogY = null;
 
-	private static RenderPathWorker task;
-	private static Path<? extends AbstractPoint> renderedPath;
-
-	public static Path<? extends AbstractPoint> getRenderedPath() {
-		return renderedPath;
-	}
-
-	public static void setRenderedPath(Path<? extends AbstractPoint> renderedPath) {
-		ZoneRenderer.renderedPath = renderedPath;
-	}
-
 	private Area renderFog(Graphics2D g, PlayerView view) {
 		Dimension size = getSize();
 		Area fogClip = new Area(new Rectangle(0, 0, size.width, size.height));
@@ -2016,6 +2003,30 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 					renderPath(g, walker != null ? walker.getPath() : set.gridlessPath, token.getFootprint(zone.getGrid()));
 				}
 
+				// Show current Allowed Movement directions for A*
+				if (walker != null) {
+					Collection<AStarCellPoint> checkPoints = walker.getCheckedPoints();
+					// Color currentColor = g.getColor();
+					for (AStarCellPoint acp : checkPoints) {
+						Set<Point2D> validMoves = acp.getValidMoves();
+						// showValidMove(g, acp.offsetZonePoint(getZone().getGrid()), AppStyle.validMoveImage, 1.0f);
+
+						for (Point2D point : validMoves) {
+							ZonePoint zp = acp.offsetZonePoint(getZone().getGrid(), point.getX(), point.getY());
+							double r = (zp.x - 1) * 45;
+							showValidMove(g, zp, r, AppStyle.blockMoveImage, 1.0f);
+						}
+						// Shape validShape = acp.getValidMoveShape(zone);
+						// if (validShape != null) {
+						// AffineTransform at = new AffineTransform();
+						// at.translate(getViewOffsetX(), getViewOffsetY());
+						// at.scale(getScale(), getScale());
+						// g.setColor(Color.GREEN);
+						// g.draw(at.createTransformedShape(validShape));
+						// }
+					}
+					// g.setColor(currentColor);
+				}
 				// handle flipping
 				BufferedImage workImage = image;
 				if (token.isFlippedX() || token.isFlippedY()) {
@@ -2176,9 +2187,6 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		}
 	}
 
-	private static RenderPathWorker renderPathWorker;
-	ExecutorService pathExecutor = Executors.newSingleThreadExecutor();
-
 	// Jamz: HERE BE RENDERING!
 	@SuppressWarnings("unchecked")
 	public void renderPath(Graphics2D g, Path<? extends AbstractPoint> path, TokenFootprint footprint) {
@@ -2194,7 +2202,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		Grid grid = zone.getGrid();
 		double scale = getScale();
 
-		log.info("Rendering path..." + System.currentTimeMillis());
+		// log.info("Rendering path..." + System.currentTimeMillis());
 
 		Rectangle footprintBounds = footprint.getBounds(grid);
 		if (path.getCellPath().get(0) instanceof CellPoint) {
@@ -2342,7 +2350,129 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			}
 			timer.stop("renderPath-3");
 		}
+
+		// g.translate(getViewOffsetX(), getViewOffsetY());
+		// g.scale(getScale(), getScale());
+		// for debugging purposes...
+		if (shape != null) {
+			g.setColor(Color.red);
+			g.fill(shape);
+			g.draw(shape);
+		}
+		if (shape2 != null) {
+			g.setColor(Color.blue);
+			g.fill(shape2);
+			g.draw(shape2);
+		}
+
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldRendering);
+	}
+
+	public void drawText(String text, int x, int y) {
+		Graphics g = this.getGraphics();
+
+		Grid grid = zone.getGrid();
+		double cwidth = grid.getCellWidth() * getScale();
+		double cheight = grid.getCellHeight() * getScale();
+
+		double iwidth = cwidth;
+		double iheight = cheight;
+
+		ScreenPoint sp = ScreenPoint.fromZonePoint(this, x, y);
+
+		int cellX = (int) (sp.x - iwidth / 2);
+		int cellY = (int) (sp.y - iheight / 2);
+
+		// Draw distance for each cell
+		int fontSize = (int) (getScale() * 12);
+		int textOffset = (int) (getScale() * 7); // 7 pixels at 100% zoom
+
+		Font font = new Font(Font.DIALOG, Font.BOLD, fontSize);
+		Font originalFont = g.getFont();
+
+		FontMetrics fm = g.getFontMetrics(font);
+		int textWidth = fm.stringWidth(text);
+
+		g.setFont(font);
+		g.setColor(Color.BLACK);
+
+		// log.info("Text: [" + text + "], width: " + textWidth + ", font size: " + fontSize + ", offset: " + textOffset);
+
+		g.drawString(text, (int) (cellX + cwidth - textWidth - textOffset), (int) (cellY + cheight - textOffset));
+		g.setFont(originalFont);
+	}
+
+	private Shape shape;
+	private Shape shape2;
+
+	public void setShape(Shape shape) {
+		if (shape == null)
+			return;
+
+		AffineTransform at = new AffineTransform();
+		at.translate(getViewOffsetX(), getViewOffsetY());
+		at.scale(getScale(), getScale());
+
+		this.shape = at.createTransformedShape(shape);
+	}
+
+	public void setShape2(Shape shape) {
+		if (shape == null)
+			return;
+
+		AffineTransform at = new AffineTransform();
+		at.translate(getViewOffsetX(), getViewOffsetY());
+		at.scale(getScale(), getScale());
+
+		this.shape2 = at.createTransformedShape(shape);
+	}
+
+	public Shape getShape() {
+		return shape;
+	}
+
+	public Shape getShape2() {
+		return shape2;
+	}
+
+	public void drawShape(Shape shape, int x, int y) {
+		Graphics2D g = (Graphics2D) this.getGraphics();
+
+		Grid grid = zone.getGrid();
+		double cwidth = grid.getCellWidth() * getScale();
+		double cheight = grid.getCellHeight() * getScale();
+
+		double iwidth = cwidth;
+		double iheight = cheight;
+
+		ScreenPoint sp = ScreenPoint.fromZonePoint(this, x, y);
+
+		AffineTransform at = new AffineTransform();
+		at.translate(sp.x, sp.y);
+		g.draw(at.createTransformedShape(shape));
+	}
+
+	public void showValidMove(Graphics2D g, ZonePoint point, double angle, BufferedImage image, float size) {
+		// Resize image to size of 1/4 size of grid
+		double resizeWidth = zone.getGrid().getCellWidth() / image.getWidth() * .25;
+		double resizeHeight = zone.getGrid().getCellHeight() / image.getHeight() * .25;
+
+		double cwidth = image.getWidth() * getScale() * resizeWidth;
+		double cheight = image.getHeight() * getScale() * resizeHeight;
+
+		double iwidth = cwidth * size;
+		double iheight = cheight * size;
+
+		ScreenPoint sp = ScreenPoint.fromZonePoint(this, point);
+
+		AffineTransform backup = g.getTransform();
+		double rx = (sp.x);
+		double ry = (sp.y);
+		// AffineTransform a = AffineTransform.getRotateInstance(Math.toRadians(angle), rx, ry);
+		// g.setTransform(a);
+
+		g.drawImage(image, (int) (sp.x - iwidth / 2), (int) (sp.y - iheight / 2), (int) iwidth, (int) iheight, this);
+		g.setTransform(backup);
 	}
 
 	public void highlightCell(Graphics2D g, ZonePoint point, BufferedImage image, float size) {
@@ -3683,6 +3813,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		private int offsetX;
 		private int offsetY;
 		private boolean restrictMovement = true;
+		private RenderPathWorker task;
 
 		public SelectionSet(String playerId, GUID tokenGUID, Set<GUID> selectionList) {
 			selectionSet.addAll(selectionList);
@@ -3696,7 +3827,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 					CellPoint tokenPoint = zone.getGrid().convert(new ZonePoint(token.getX(), token.getY()));
 
 					walker = zone.getGrid().createZoneWalker();
-
+					walker.setFootprint(token.getFootprint(zone.getGrid()));
 					// task = new RenderPathWorker(walker, tokenPoint, tokenPoint);
 					// task.execute();
 					walker.setWaypoints(tokenPoint, tokenPoint);
@@ -3735,9 +3866,17 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			ZonePoint zp = new ZonePoint(token.getX() + x, token.getY() + y);
 			if (ZoneRenderer.this.zone.getGrid().getCapabilities().isPathingSupported() && token.isSnapToGrid()) {
 				CellPoint point = zone.getGrid().convert(zp);
-				// task = new RenderPathWorker(walker, point, restrictMovement);
-				// task.execute();
-				walker.replaceLastWaypoint(point, restrictMovement);
+				if (task != null) {
+					// log.info("task.getState() " + task.getState());
+					task.cancel(true);
+					// log.info("task.getState() now? " + task.getState());
+				} else {
+					// log.info("*** task is new ***");
+				}
+
+				task = new RenderPathWorker(walker, point, restrictMovement, ZoneRenderer.this);
+				task.execute();
+				// walker.replaceLastWaypoint(point, restrictMovement);
 			} else {
 				if (gridlessPath.getCellPath().size() > 1) {
 					gridlessPath.replaceLastPoint(zp);
@@ -3773,6 +3912,13 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			ZonePoint zp;
 			if (walker != null && token.isSnapToGrid() && getZone().getGrid() != null) {
 				CellPoint cp = walker.getLastPoint();
+
+				if (cp == null) {
+					// log.info("cellpoint is null! FIXME! You have Walker class updating outside of thread..."); // Why not save last waypoint to this class?
+					cp = zone.getGrid().convert(new ZonePoint(token.getX(), token.getY()));
+					// log.info("So I set it to: " + cp);
+				}
+
 				zp = getZone().getGrid().convert(cp);
 			} else {
 				zp = gridlessPath.getLastJunctionPoint();

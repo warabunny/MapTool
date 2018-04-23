@@ -8,9 +8,14 @@
  */
 package net.rptools.maptool.client.walker;
 
+import java.util.Collection;
+import java.util.Set;
+
 import net.rptools.maptool.client.ui.zone.RenderPathWorker;
+import net.rptools.maptool.client.walker.astar.AStarCellPoint;
 import net.rptools.maptool.model.CellPoint;
 import net.rptools.maptool.model.Path;
+import net.rptools.maptool.model.TokenFootprint;
 
 public interface ZoneWalker {
 	public void setWaypoints(CellPoint... points);
@@ -48,4 +53,10 @@ public interface ZoneWalker {
 	 * @return The value <code>true</code> if a waypoint was added, <code>false</code> if one was removed.
 	 */
 	boolean toggleWaypoint(CellPoint point);
+
+	public void setFootprint(TokenFootprint footprint);
+	
+	public default Collection<AStarCellPoint> getCheckedPoints() {
+		return null;
+	}
 }

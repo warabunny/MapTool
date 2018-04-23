@@ -16,6 +16,7 @@ import javax.swing.SwingWorker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.ui.zone.ZoneRenderer.SelectionSet;
 import net.rptools.maptool.client.walker.ZoneWalker;
 import net.rptools.maptool.model.CellPoint;
@@ -39,12 +40,12 @@ public class RenderPathWorker extends SwingWorker<Void, Void> {
 
 	long start = System.currentTimeMillis();
 
-	RenderPathWorker(ZoneRenderer zoneRenderer, Graphics2D g, ZoneWalker walker, TokenFootprint footprint) {
-		this.zoneRenderer = zoneRenderer;
-		this.g = g;
-		this.walker = walker;
-		this.footprint = footprint;
-	}
+	// RenderPathWorker(ZoneRenderer zoneRenderer, Graphics2D g, ZoneWalker walker, TokenFootprint footprint) {
+	// this.zoneRenderer = zoneRenderer;
+	// this.g = g;
+	// this.walker = walker;
+	// this.footprint = footprint;
+	// }
 
 	RenderPathWorker(ZoneWalker walker, CellPoint startPoint, CellPoint endPoint) {
 		this.walker = walker;
@@ -60,18 +61,26 @@ public class RenderPathWorker extends SwingWorker<Void, Void> {
 		this.restrictMovement = restrictMovement;
 	}
 
+	public RenderPathWorker(ZoneWalker walker, CellPoint endPoint, boolean restrictMovement, ZoneRenderer zoneRenderer) {
+		this.walker = walker;
+		this.endPoint = endPoint;
+		doSomeWork = 2;
+		this.restrictMovement = restrictMovement;
+		this.zoneRenderer = zoneRenderer;
+	}
+
 	@Override
 	protected Void doInBackground() throws Exception {
-		log.info("start RenderPathWorker: " + (System.currentTimeMillis() - start) + "ms");
+		//log.info("start RenderPathWorker, doSomeWork: " + doSomeWork);
 		// log.info("Worker working!");
-		isWorking = true;
-		RenderPathWorker something = this;
-		while (!isCancelled()) {
-			Thread.sleep(20);
-			if ((System.currentTimeMillis() - start) > 500)
-				break;
-		}
-		log.info("\n\nwas cancelled: " + isCancelled());
+		//isWorking = true;
+		// RenderPathWorker something = this;
+		// while (!isCancelled()) {
+		// Thread.sleep(20);
+		// if ((System.currentTimeMillis() - start) > 500)
+		// break;
+		// }
+		//log.info("was cancelled: " + isCancelled());
 		// log.info("something? " + (something == null));
 
 		if (doSomeWork == 1) {
@@ -80,10 +89,10 @@ public class RenderPathWorker extends SwingWorker<Void, Void> {
 			walker.replaceLastWaypoint(endPoint, restrictMovement);
 		} else {
 			path = walker.getPath(this); // walker.getPath() is where the real magic happens!
-			log.info("Time for walker.getPath(): " + (System.currentTimeMillis() - start) + "ms");
+			//log.info("Time for walker.getPath(): " + (System.currentTimeMillis() - start) + "ms");
 			process(null);
 		}
-
+		// process(null); // this could be incremental?
 		// ZoneRenderer.setRenderedPath(walker.getPath(something));
 		// this.cancel(false);
 		// zoneRenderer.renderPath(g, path, footprint);
@@ -98,8 +107,10 @@ public class RenderPathWorker extends SwingWorker<Void, Void> {
 
 	@Override
 	protected void process(List<Void> v) {
-		// ZoneRenderer.setRenderedPath(path);
-		zoneRenderer.renderPath(g, path, footprint); // invokes UI thread?
+		// if(zoneRenderer != null)
+		// zoneRenderer.repaint();
+
+		// zoneRenderer.renderPath(g, path, footprint); // invokes UI thread?
 		log.info("process renderPath done: " + (System.currentTimeMillis() - start) + "ms");
 	}
 
@@ -112,8 +123,13 @@ public class RenderPathWorker extends SwingWorker<Void, Void> {
 		// zoneRenderer.renderPath(g, path, footprint);
 		// ZoneRenderer.setRenderedPath(path);
 
+		if (zoneRenderer != null)
+			MapTool.getFrame().getCurrentZoneRenderer().repaint();
+		else
+			log.info("\n\n\nWhy is zoneRenderer null in RenderPathWorker? SHOULD NEVER SEE THIS!");
+
 		// isStarted = false;
-		log.info("Time for RenderPathWorker: " + (System.currentTimeMillis() - start) + "ms");
+		//log.info("Time for RenderPathWorker: " + (System.currentTimeMillis() - start) + "ms");
 	}
 
 }

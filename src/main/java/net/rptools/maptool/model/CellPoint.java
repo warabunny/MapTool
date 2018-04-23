@@ -59,6 +59,21 @@ public class CellPoint extends AbstractPoint {
 		return new ScreenPoint(sx, sy);
 	}
 
+	public ZonePoint convertToZonePoint(Grid grid) {
+		return grid.convert(this);
+	}
+
+	public ZonePoint offsetZonePoint(Grid grid, double offsetX, double offsetY) {
+		ZonePoint zp = convertToZonePoint(grid);
+		offsetX += 1;
+		offsetY += 1;
+
+		zp.x = (int) (zp.x + (grid.getCellWidth() / 2) * offsetX);
+		zp.y = (int) (zp.y + (grid.getCellWidth() / 2) * offsetY);
+
+		return zp;
+	}
+
 	// Return distance in grid units for current map
 	public double getDistanceTraveled(Zone zone) {
 		return Math.floor(distanceTraveled) * zone.getUnitsPerCell();

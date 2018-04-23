@@ -15,7 +15,6 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Area;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -24,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.Action;
 import javax.swing.KeyStroke;
@@ -53,8 +53,11 @@ public abstract class Grid implements Cloneable {
 	 */
 	public static final int MIN_GRID_SIZE = 9;
 	public static final int MAX_GRID_SIZE = 350;
+	private static final int CIRCLE_SEGMENTS = 60;
 
 	private static final Dimension NO_DIM = new Dimension();
+
+	private static Map<Integer, Area> gridShapeCache = new ConcurrentHashMap<Integer, Area>();
 
 	private int offsetX = 0;
 	private int offsetY = 0;
@@ -295,8 +298,7 @@ public abstract class Grid implements Cloneable {
 	 *            used to increase the area based on token footprint
 	 * @return Area
 	 */
-	public Area getShapedArea(ShapeType shape, Token token, double range, double arcAngle, int offsetAngle,
-			boolean scaleWithToken) {
+	public Area getShapedArea(ShapeType shape, Token token, double range, double arcAngle, int offsetAngle, boolean scaleWithToken) {
 		if (shape == null) {
 			shape = ShapeType.CIRCLE;
 		}
@@ -326,11 +328,33 @@ public abstract class Grid implements Cloneable {
 		switch (shape) {
 		case CIRCLE:
 			// visibleArea = new Area(new Ellipse2D.Double(-visionRange, -visionRange, visionRange * 2, visionRange * 2));
-			// Use fake circles for better performance, remove those curves! We are talking over 10-100x performace gains! awt.geom.Area.add does NOT do curves fast...
-			// visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange, visionRange, 100); // FIXME: change 100 to a configuration setting?
-			// POC for "GRID" type vision?
-
+			// Use fake circles for better performance, remove those curves! We are talking over 10-100x performance gains! awt.geom.Area.add does NOT do curves fast...
+			visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange, visionRange, CIRCLE_SEGMENTS);
+			break;
+		case GRID:
 			if (range > 0) {
+				long time = System.currentTimeMillis();
+
+				// Create the light
+				int dist = (int) (range / zone.getUnitsPerCell());
+				Area radius = new Area();
+
+				// Get it from cache if it exists, otherwise create and store it
+				synchronized (gridShapeCache) {
+					if (gridShapeCache.containsKey(Integer.valueOf(dist))) {
+						radius = gridShapeCache.get(Integer.valueOf(dist));
+					} else {
+						HashSet<Point> cells = generateRadius(dist);
+
+						for (Point point : cells)
+							radius.add(new Area(new Rectangle((point.x) * size, (point.y) * size, size, size)));
+
+						gridShapeCache.put(Integer.valueOf(dist), radius);
+						log.info("Adding to cache radius: " + Integer.valueOf(dist));
+					}
+				}
+				
+				// place the light, this is very fast, < 1ms
 				Set<CellPoint> tokenCells = new HashSet<CellPoint>();
 				double tokenSizeAdjust = 0;
 
@@ -347,22 +371,17 @@ public abstract class Grid implements Cloneable {
 				int cellX = token.getX() / size;
 				int cellY = token.getY() / size;
 
-				visibleArea = new Area();
-				Area radius = new Area();
-				int dist = (int) (range / zone.getUnitsPerCell());
-				HashSet<Point> cells = generateRadius(0, 0, dist);
-
-				for (Point point : cells)
-					radius.add(new Area(new Rectangle((point.x) * size, (point.y) * size, size, size)));
-
 				for (CellPoint cellPoint : tokenCells) {
-					// log.info("cellPoint x,y: " + cellPoint.x + ", " + cellPoint.y);
-
 					AffineTransform at = new AffineTransform();
 					at.translate((cellPoint.x - cellX - tokenSizeAdjust) * size, (cellPoint.y - cellY - tokenSizeAdjust) * size);
 					visibleArea.add(radius.createTransformedArea(at));
 				}
+
+				time = (System.currentTimeMillis() - time);
+				if (time > 50)
+					log.info("Long time for grid light " + dist + ": " + time + "ms");
 			} else {
+				// Fall back to regular circle in daylight, etc.
 				visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange, visionRange, 100); // FIXME: change 100 to a configuration setting?
 			}
 			break;
@@ -413,9 +432,9 @@ public abstract class Grid implements Cloneable {
 		return visibleArea;
 	}
 
-	private HashSet<Point> generateRadius(int x, int y, int radius) {
+	private HashSet<Point> generateRadius(int radius) {
 		HashSet<Point> points = new HashSet<>();
-		// log.info("generateRadius: " + x + ", " + y + ", " + radius);
+		int x, y;
 
 		for (y = -radius; y <= radius; y++) {
 			for (x = -radius; x <= radius; x++) {

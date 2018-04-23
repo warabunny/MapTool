@@ -13,6 +13,7 @@ import java.awt.Rectangle;
 import java.awt.geom.Area;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,11 +31,11 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 
 import net.rptools.maptool.client.MapTool;
-import net.rptools.maptool.client.ui.zone.RenderPathWorker;
 import net.rptools.maptool.client.walker.AbstractZoneWalker;
 import net.rptools.maptool.model.CellPoint;
 import net.rptools.maptool.model.GUID;
 import net.rptools.maptool.model.Label;
+import net.rptools.maptool.model.TokenFootprint;
 import net.rptools.maptool.model.Zone;
 
 public abstract class AbstractAStarWalker extends AbstractZoneWalker {
@@ -48,11 +50,18 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 	double distance = -1;
 	private List<GUID> debugLabels;
-	private boolean debugCosts = false; // Manually set this to view g & G costs as rendered labels
+	private boolean debugCosts = false; // Manually set this to view H, G & F costs as rendered labels
 
 	protected final GeometryFactory geometryFactory = new GeometryFactory();
 	protected ShapeReader shapeReader = new ShapeReader(geometryFactory);
 	protected Geometry vblGeometry = null;
+	protected TokenFootprint footprint;
+
+	protected Map<AStarCellPoint, AStarCellPoint> checkedList = new ConcurrentHashMap<AStarCellPoint, AStarCellPoint>();
+	protected long avgRetrieveTime;
+	protected long avgTestTime;
+	protected long retrievalCount;
+	protected long testCount;
 
 	/**
 	 * Returns the list of neighbor cells that are valid for being movement-checked. This is an array of (x,y) offsets (see the constants in this class) named as compass points.
@@ -62,6 +71,11 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 	 * scanned, since I believe all Grids share a common ZoneWalker.
 	 */
 	protected abstract int[][] getNeighborMap(int x, int y);
+
+	@Override
+	public void setFootprint(TokenFootprint footprint) {
+		this.footprint = footprint;
+	}
 
 	@Override
 	protected List<CellPoint> calculatePath(CellPoint start, CellPoint end) {
@@ -75,8 +89,8 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		if (debugLabels == null)
 			debugLabels = new ArrayList<GUID>();
 
-		if (start.equals(end))
-			log.info("NO WORK!");
+		// if (start.equals(end))
+		// log.info("NO WORK!");
 
 		openList.add(new AStarCellPoint(start));
 		openSet.put(openList.get(0), openList.get(0));
@@ -108,12 +122,12 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		}
 
 		// If debug is enabled, MapTool is pretty busy so...
-		double estimatedTimeoutNeeded;
-		if (log.isDebugEnabled()) {
-			estimatedTimeoutNeeded = hScore(start, end) * 20;
-		} else {
-			estimatedTimeoutNeeded = Math.max(hScore(start, end) / 5, 10000);
-		}
+		double estimatedTimeoutNeeded = 10000;
+		// if (log.isDebugEnabled()) {
+		// estimatedTimeoutNeeded = hScore(start, end) * 20;
+		// } else {
+		// estimatedTimeoutNeeded = Math.max(hScore(start, end) / 5, 6000);
+		// }
 
 		// Timeout quicker for GM cause reasons
 		if (MapTool.getPlayer().isGM())
@@ -165,25 +179,10 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			// down stream SwingWorker. Need to cancel here if called
 
 			if (Thread.interrupted()) {
-				log.info("Thread interrupted!");
-			} else {
-				// log.info("Thread NOT interrupted...");
+				// log.info("Thread interrupted!");
+				cancelled = true;
+				openList.clear();
 			}
-			if (renderPathWorker != null) {
-				if (renderPathWorker.isCancelled()) {
-					log.info("***** renderPathWorker cancelled called! " + renderPathWorker.isCancelled());
-					cancelled = true;
-					openList.clear();
-				} else {
-					// log.info("***** renderPathWorker.getState " + renderPathWorker.getState());
-					// log.info("***** renderPathWorker.isWorking " + RenderPathWorker.isWorking);
-				}
-			} else {
-				// log.info("renderPathWorker null? " + (renderPathWorker == null));
-				// log.info("***** renderPathWorker.isWorking " + RenderPathWorker.isWorking);
-				// why is this null!?!?!?!
-			}
-
 		}
 
 		List<CellPoint> ret = new LinkedList<CellPoint>();
@@ -201,8 +200,15 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			distance = 0;
 
 		Collections.reverse(ret);
-		// log.info("Time to calculate A* path: " + (System.currentTimeMillis() - timeOut) + "ms");
-		RenderPathWorker.isWorking = false;
+		timeOut = (System.currentTimeMillis() - timeOut);
+		if (timeOut > 50)
+			log.info("Time to calculate A* path warning: " + timeOut + "ms");
+
+//		if (retrievalCount > 0)
+//			log.info("avgRetrieveTime: " + Math.floor(avgRetrieveTime / retrievalCount)/1000 + " micro");
+//		if (testCount > 0)
+//			log.info("avgTestTime:     " + Math.floor(avgTestTime / testCount)/1000 + " micro");
+		
 		return ret;
 	}
 
@@ -279,5 +285,9 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		debugLabels.add(gScore.getId());
 		debugLabels.add(hScore.getId());
 		debugLabels.add(fScore.getId());
+	}
+	
+	public Collection<AStarCellPoint> getCheckedPoints() {
+		return checkedList.values();
 	}
 }
