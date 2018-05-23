@@ -15,7 +15,7 @@ It's simply my way of telling you, the user, this is my fork of MapTool and not 
 
 Why am I telling random people on the internet this? So you know this is not just some one off fork that will be dead in 6 months. If there is a bug and it's hampering my game...or there is some enhancement that I simply must have to make my game better, I'm going to code it. And as a byproduct, you the user also get those fixes/enhancements for the low low price of *free*!
 
-Lastly, all code I write is for fun and as such, open source for consumption upstream to RPTools. Feel free to fork from the main repository or mine and submit contributions! If you find any bug/flaws or have a really cool idea for an enhancement, feel free to create an issue on GitHub. It's the best way to catch my attention! You can also join fellow users on Discord: https://discord.gg/gevEtpC
+Lastly, all code I write is for fun and as such, open source for consumption upstream to RPTools. Feel free to fork from the main repository or mine and submit contributions! If you find any bug/flaws or have a really cool idea for an enhancement, feel free to create an issue on GitHub. It's the best way to catch my attention! You can also join fellow users on Discord: [https://discord.gg/gevEtpC](https://discord.gg/gevEtpC)
 
 ___
 
@@ -37,9 +37,9 @@ Requirements
 Resources
 ---------
 
-- **Website:** http://rptools.net/
-- **Forums:**  http://forums.rptools.net
-- **Wiki:**    http://lmwcs.com/rptools/wiki/Main_Page
+- **Website:** [http://rptools.net](http://rptools.net)
+- **Forums:**  [http://forums.rptools.net](http://forums.rptools.net)
+- **Wiki:**    [http://lmwcs.com/rptools/wiki/Main_Page](http://lmwcs.com/rptools/wiki/Main_Page)
 
 Building Maptool
 ----------------
@@ -84,7 +84,7 @@ For Windows, remember to flip the slash:
 .\gradlew clean deploy
 ```
 
-This will create an installable file for use on your operating system. Look in the 'releases' folder for the ouput. *Note: Additional requirements may be needed, ie Inno setup. See the offical documentation for more information:* https://docs.oracle.com/javase/8/docs/technotes/guides/deploy/self-contained-packaging.html
+This will create an installable file for use on your operating system. Look in the 'releases' folder for the ouput. *Note: Additional requirements may be needed, ie Inno setup. See the offical documentation for more information:* [https://docs.oracle.com/javase/8/docs/technotes/guides/deploy/self-contained-packaging.html](https://docs.oracle.com/javase/8/docs/technotes/guides/deploy/self-contained-packaging.html)
 
 
 Developers
