@@ -8,10 +8,7 @@
  */
 package net.rptools.maptool.client.walker.astar;
 
-import java.awt.Color;
-import java.awt.Rectangle;
 import java.awt.geom.Area;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,8 +30,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.walker.AbstractZoneWalker;
 import net.rptools.maptool.model.CellPoint;
-import net.rptools.maptool.model.GUID;
-import net.rptools.maptool.model.Label;
 import net.rptools.maptool.model.TokenFootprint;
 import net.rptools.maptool.model.Zone;
 
@@ -49,8 +44,8 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 	protected double normal_cost = 1; // zone.getUnitsPerCell();
 
 	double distance = -1;
-	private List<GUID> debugLabels;
-	private boolean debugCosts = false; // Manually set this to view H, G & F costs as rendered labels
+	// private List<GUID> debugLabels;
+	// private boolean debugCosts = false; // Manually set this to view H, G & F costs as rendered labels
 
 	protected final GeometryFactory geometryFactory = new GeometryFactory();
 	protected ShapeReader shapeReader = new ShapeReader(geometryFactory);
@@ -83,11 +78,12 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		Map<AStarCellPoint, AStarCellPoint> openSet = new HashMap<AStarCellPoint, AStarCellPoint>(); // For faster lookups
 		Set<AStarCellPoint> closedSet = new HashSet<AStarCellPoint>();
 
-		// Current fail safe... bail out after 1/2 second of searching
+		// Current fail safe... bail out after 10 seconds of searching just in case, shouldn't hang UI as this is off the AWT thread
 		long timeOut = System.currentTimeMillis();
+		double estimatedTimeoutNeeded = 10000;
 
-		if (debugLabels == null)
-			debugLabels = new ArrayList<GUID>();
+		// if (debugLabels == null)
+		// debugLabels = new ArrayList<GUID>();
 
 		// if (start.equals(end))
 		// log.info("NO WORK!");
@@ -115,18 +111,10 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		}
 
 		// Erase previous debug labels, this actually erases ALL labels!
-		if (!zone.getLabels().isEmpty() && debugCosts) {
-			for (Label label : zone.getLabels()) {
-				zone.removeLabel(label.getId());
-			}
-		}
-
-		// If debug is enabled, MapTool is pretty busy so...
-		double estimatedTimeoutNeeded = 10000;
-		// if (log.isDebugEnabled()) {
-		// estimatedTimeoutNeeded = hScore(start, end) * 20;
-		// } else {
-		// estimatedTimeoutNeeded = Math.max(hScore(start, end) / 5, 6000);
+		// if (!zone.getLabels().isEmpty() && debugCosts) {
+		// for (Label label : zone.getLabels()) {
+		// zone.removeLabel(label.getId());
+		// }
 		// }
 
 		// Timeout quicker for GM cause reasons
@@ -155,7 +143,7 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 			for (AStarCellPoint neighborNode : getNeighbors(currentNode, closedSet)) {
 				neighborNode.h = hScore(neighborNode, end);
-				showDebugInfo(neighborNode);
+				// showDebugInfo(neighborNode);
 
 				if (openSet.containsKey(neighborNode)) {
 					// check if it is cheaper to get here the way that we just came, versus the previous path
@@ -174,8 +162,6 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 			closedSet.add(currentNode);
 			currentNode = null;
-
-			// down stream SwingWorker. Need to cancel here if called
 
 			if (Thread.interrupted()) {
 				// log.info("Thread interrupted!");
@@ -246,44 +232,42 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 			distance = calculateDistance(getPath().getCellPath(), getZone().getUnitsPerCell());
 		}
 
-		// log.info("Feet Distance is " + distance * getZone().getUnitsPerCell());
-
 		return (int) distance; // * getZone().getUnitsPerCell();
 	}
 
-	protected void showDebugInfo(AStarCellPoint node) {
-		if (!log.isDebugEnabled() && !debugCosts)
-			return;
-
-		Rectangle cellBounds = zone.getGrid().getBounds(node);
-		DecimalFormat f = new DecimalFormat("##.00");
-
-		Label gScore = new Label();
-		Label hScore = new Label();
-		Label fScore = new Label();
-
-		gScore.setLabel(f.format(node.getG()));
-		gScore.setX(cellBounds.x + 10);
-		gScore.setY(cellBounds.y + 10);
-
-		hScore.setLabel(f.format(node.h));
-		hScore.setX(cellBounds.x + 35);
-		hScore.setY(cellBounds.y + 10);
-
-		fScore.setLabel(f.format(node.cost()));
-		fScore.setX(cellBounds.x + 25);
-		fScore.setY(cellBounds.y + 25);
-		fScore.setForegroundColor(Color.RED);
-
-		zone.putLabel(gScore);
-		zone.putLabel(hScore);
-		zone.putLabel(fScore);
-
-		// Track labels to delete later
-		debugLabels.add(gScore.getId());
-		debugLabels.add(hScore.getId());
-		debugLabels.add(fScore.getId());
-	}
+	// protected void showDebugInfo(AStarCellPoint node) {
+	// if (!log.isDebugEnabled() && !debugCosts)
+	// return;
+	//
+	// Rectangle cellBounds = zone.getGrid().getBounds(node);
+	// DecimalFormat f = new DecimalFormat("##.00");
+	//
+	// Label gScore = new Label();
+	// Label hScore = new Label();
+	// Label fScore = new Label();
+	//
+	// gScore.setLabel(f.format(node.getG()));
+	// gScore.setX(cellBounds.x + 10);
+	// gScore.setY(cellBounds.y + 10);
+	//
+	// hScore.setLabel(f.format(node.h));
+	// hScore.setX(cellBounds.x + 35);
+	// hScore.setY(cellBounds.y + 10);
+	//
+	// fScore.setLabel(f.format(node.cost()));
+	// fScore.setX(cellBounds.x + 25);
+	// fScore.setY(cellBounds.y + 25);
+	// fScore.setForegroundColor(Color.RED);
+	//
+	// zone.putLabel(gScore);
+	// zone.putLabel(hScore);
+	// zone.putLabel(fScore);
+	//
+	// // Track labels to delete later
+	// debugLabels.add(gScore.getId());
+	// debugLabels.add(hScore.getId());
+	// debugLabels.add(fScore.getId());
+	// }
 
 	public Collection<AStarCellPoint> getCheckedPoints() {
 		return checkedList.values();

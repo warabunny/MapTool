@@ -36,8 +36,6 @@ import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,16 +150,6 @@ import org.xml.sax.SAXException;
 import com.jidesoft.docking.DefaultDockableHolder;
 import com.jidesoft.docking.DockableFrame;
 
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.scene.Group;
-import javafx.scene.Scene;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
-
 /**
  */
 public class MapToolFrame extends DefaultDockableHolder implements WindowListener, AppEventListener {
@@ -200,7 +188,6 @@ public class MapToolFrame extends DefaultDockableHolder implements WindowListene
 	private JPanel visibleControlPanel;
 	private FullScreenFrame fullScreenFrame;
 	private final JPanel rendererBorderPanel;
-	private final JLayeredPane rendererMediaPanel;
 	private final List<ZoneRenderer> zoneRendererList;
 	private final JMenuBar menuBar;
 	private final StatusPanel statusPanel;
@@ -371,28 +358,11 @@ public class MapToolFrame extends DefaultDockableHolder implements WindowListene
 		// zoneMiniMapPanel.setSize(100, 100);
 
 		zoneRendererPanel = new JPanel(new PositionalLayout(5));
-		// zoneRendererPanel.setBackground(Color.black);
+		zoneRendererPanel.setBackground(Color.black);
 		// zoneRendererPanel.add(zoneMiniMapPanel, PositionalLayout.Position.SE);
 		// zoneRendererPanel.add(getChatTypingLabel(), PositionalLayout.Position.NW);
 		zoneRendererPanel.add(getChatTypingPanel(), PositionalLayout.Position.NW);
 		zoneRendererPanel.add(getChatActionLabel(), PositionalLayout.Position.SW);
-		// zoneRendererPanel.setOpaque(false);
-		// zoneRendererPanel.setSize(2100, 1600);
-
-		rendererMediaPanel = new JLayeredPane();
-		fxPanel = new JFXPanel();
-		fxPanel.setSize(1024, 768);
-//		fxPanel.setOpaque(false);
-
-		// rendererMediaPanel.add(fxPanel);
-
-//		zoneRendererPanel.add(fxPanel, PositionalLayout.Position.NW);
-		Platform.runLater(new Runnable() {
-			@Override
-			public void run() {
-				initFX(fxPanel);
-			}
-		});
 
 		commandPanel = new CommandPanel();
 		MapTool.getMessageList().addObserver(commandPanel);
@@ -442,49 +412,6 @@ public class MapToolFrame extends DefaultDockableHolder implements WindowListene
 		chatTyperTimers.addObserver(chatTyperObserver);
 		chatTimer = getChatTimer();
 		setChatTypingLabelColor(AppPreferences.getChatNotificationColor());
-	}
-
-	private static void initFX(JFXPanel fxPanel) {
-		// This method is invoked on the JavaFX thread
-		Scene scene = createScene();
-		fxPanel.setScene(scene);
-	}
-
-	private static Scene createScene() {
-		Group root = new Group();
-		Scene scene = new Scene(root);
-
-		root.setMouseTransparent(true);
-		root.setAutoSizeChildren(true);
-
-		WebView webview = new WebView();
-		WebEngine webEngine = webview.getEngine();
-		webEngine.load("http://www.youtube.com/embed/3Z6Mkfetay8?autoplay=1");
-
-		// webview.setMinWidth(2100);
-		// webview.setMinHeight(1280);
-		// webview.autosize();
-		// webview.setZoom(webview.getZoom() * 2);
-		// webview.setMouseTransparent(true);
-
-		// root.getChildren().add(webview);
-
-		try {
-			URL test = new File("d:/dynamic_map_test.mp4").toURI().toURL();
-			Media media = new Media(test.toExternalForm());
-			MediaPlayer mediaPlayer = new MediaPlayer(media);
-			MediaView mediaView = new MediaView(mediaPlayer);
-			mediaPlayer.setAutoPlay(true);
-			mediaPlayer.setCycleCount(-1);
-
-			root.getChildren().add(mediaView);
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
-		return (scene);
 	}
 
 	public ChatNotificationTimers getChatNotificationTimers() {
@@ -585,7 +512,6 @@ public class MapToolFrame extends DefaultDockableHolder implements WindowListene
 
 		// Main panel
 		getDockingManager().getWorkspace().add(rendererBorderPanel);
-		// getDockingManager().getWorkspace().add(rendererMediaPanel);
 
 		// Docked frames
 		getDockingManager().addFrame(getFrame(MTFrame.CONNECTIONS));
@@ -1792,10 +1718,6 @@ public class MapToolFrame extends DefaultDockableHolder implements WindowListene
 
 	private JFileChooser saveTableFileChooser;
 	private JFileChooser loadTableFileChooser;
-	private JFXPanel fxPanel;
-	public JFXPanel getFxPanel() {
-		return fxPanel;
-	}
 
 	public JFileChooser getSaveTableFileChooser() {
 		if (saveTableFileChooser == null) {
