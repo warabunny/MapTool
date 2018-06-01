@@ -45,10 +45,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,22 +69,11 @@ import javax.swing.SwingUtilities;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.scene.Group;
-import javafx.scene.Scene;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
-import javafx.scene.text.Text;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import net.rptools.lib.CodeTimer;
 import net.rptools.lib.MD5Key;
 import net.rptools.lib.image.ImageUtil;
 import net.rptools.lib.swing.ImageBorder;
 import net.rptools.lib.swing.ImageLabel;
-import net.rptools.lib.swing.PositionalLayout;
 import net.rptools.lib.swing.SwingUtil;
 import net.rptools.maptool.client.AppActions;
 import net.rptools.maptool.client.AppConstants;
@@ -106,7 +92,6 @@ import net.rptools.maptool.client.tool.drawing.FreehandExposeTool;
 import net.rptools.maptool.client.tool.drawing.OvalExposeTool;
 import net.rptools.maptool.client.tool.drawing.PolygonExposeTool;
 import net.rptools.maptool.client.tool.drawing.RectangleExposeTool;
-import net.rptools.maptool.client.ui.MapToolFrame;
 import net.rptools.maptool.client.ui.Scale;
 import net.rptools.maptool.client.ui.Tool;
 import net.rptools.maptool.client.ui.htmlframe.HTMLFrameFactory;
@@ -209,8 +194,10 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 	private CodeTimer timer;
 
 	private boolean autoResizeStamp = false;
-	private boolean useAStarPathfinding = false;
 
+	// Show blocked grid lines during AStar moving, for debugging...
+	private boolean showAstarDebugging = false;
+	
 	public static enum TokenMoveCompletion {
 		TRUE, FALSE, OTHER
 	}
@@ -389,7 +376,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		}
 		Token token = zone.getToken(keyToken);
 		set.setOffset(offset.x - token.getX(), offset.y - token.getY());
-		repaint(); // Jamz causes flicker when using AI
+		repaint(); // Jamz: may cause flicker when using AI
 	}
 
 	public void toggleMoveSelectionSetWaypoint(GUID keyToken, ZonePoint location) {
@@ -1182,7 +1169,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 				timer.stop("tokens");
 			}
 			timer.start("unowned movement");
-			renderMoveSelectionSets(g2d, view, getUnOwnedMovementSet(view));
+			showBlockedMoves(g2d, view, getUnOwnedMovementSet(view));
 			timer.stop("unowned movement");
 
 			// Moved below, after the renderFog() call...
@@ -1232,7 +1219,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 			}
 
 			timer.start("owned movement");
-			renderMoveSelectionSets(g2d, view, getOwnedMovementSet(view));
+			showBlockedMoves(g2d, view, getOwnedMovementSet(view));
 			timer.stop("owned movement");
 
 			// Text associated with tokens being moved is added to a list to be drawn after, i.e. on top of, the tokens
@@ -1936,7 +1923,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		return movementSet;
 	}
 
-	protected void renderMoveSelectionSets(Graphics2D g, PlayerView view, Set<SelectionSet> movementSet) {
+	protected void showBlockedMoves(Graphics2D g, PlayerView view, Set<SelectionSet> movementSet) {
 		if (selectionSetMap.isEmpty()) {
 			return;
 		}
@@ -2017,29 +2004,19 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 					renderPath(g, walker != null ? walker.getPath() : set.gridlessPath, token.getFootprint(zone.getGrid()));
 				}
 
-				// Show current Allowed Movement directions for A*
-				if (walker != null) {
+				// Show current Blocked Movement directions for A*
+				if (walker != null && showAstarDebugging ) {
 					Collection<AStarCellPoint> checkPoints = walker.getCheckedPoints();
 					// Color currentColor = g.getColor();
 					for (AStarCellPoint acp : checkPoints) {
 						Set<Point2D> validMoves = acp.getValidMoves();
-						// showValidMove(g, acp.offsetZonePoint(getZone().getGrid()), AppStyle.validMoveImage, 1.0f);
 
 						for (Point2D point : validMoves) {
 							ZonePoint zp = acp.offsetZonePoint(getZone().getGrid(), point.getX(), point.getY());
 							double r = (zp.x - 1) * 45;
-							showValidMove(g, zp, r, AppStyle.blockMoveImage, 1.0f);
+							showBlockedMoves(g, zp, r, AppStyle.blockMoveImage, 1.0f);
 						}
-						// Shape validShape = acp.getValidMoveShape(zone);
-						// if (validShape != null) {
-						// AffineTransform at = new AffineTransform();
-						// at.translate(getViewOffsetX(), getViewOffsetY());
-						// at.scale(getScale(), getScale());
-						// g.setColor(Color.GREEN);
-						// g.draw(at.createTransformedShape(validShape));
-						// }
 					}
-					// g.setColor(currentColor);
 				}
 				// handle flipping
 				BufferedImage workImage = image;
@@ -2472,7 +2449,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		g.draw(at.createTransformedShape(shape));
 	}
 
-	public void showValidMove(Graphics2D g, ZonePoint point, double angle, BufferedImage image, float size) {
+	public void showBlockedMoves(Graphics2D g, ZonePoint point, double angle, BufferedImage image, float size) {
 		// Resize image to size of 1/4 size of grid
 		double resizeWidth = zone.getGrid().getCellWidth() / image.getWidth() * .25;
 		double resizeHeight = zone.getGrid().getCellHeight() / image.getHeight() * .25;
@@ -2486,10 +2463,6 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		ScreenPoint sp = ScreenPoint.fromZonePoint(this, point);
 
 		AffineTransform backup = g.getTransform();
-		double rx = (sp.x);
-		double ry = (sp.y);
-		// AffineTransform a = AffineTransform.getRotateInstance(Math.toRadians(angle), rx, ry);
-		// g.setTransform(a);
 
 		g.drawImage(image, (int) (sp.x - iwidth / 2), (int) (sp.y - iheight / 2), (int) iwidth, (int) iheight, this);
 		g.setTransform(backup);
@@ -3893,7 +3866,7 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 					renderPathTask.cancel(true);
 				}
 
-				renderPathTask = new RenderPathWorker(walker, point, useAStarPathfinding, ZoneRenderer.this);
+				renderPathTask = new RenderPathWorker(walker, point, AppPreferences.isUsingAstarPathfinding(), ZoneRenderer.this);
 				threadPool.execute(renderPathTask);
 			} else {
 				if (gridlessPath.getCellPath().size() > 1) {
@@ -4401,9 +4374,5 @@ public class ZoneRenderer extends JComponent implements DropTargetListener, Comp
 		} catch (Exception e) {
 		}
 		return c;
-	}
-
-	public void setUseAStarPathfinding(boolean toggle) {
-		useAStarPathfinding = toggle;
 	}
 }

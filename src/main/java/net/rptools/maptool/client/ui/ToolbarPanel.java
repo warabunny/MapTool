@@ -26,6 +26,7 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 
 import net.rptools.lib.image.ImageUtil;
+import net.rptools.maptool.client.AppPreferences;
 import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.tool.BoardTool;
 import net.rptools.maptool.client.tool.FacingTool;
@@ -263,12 +264,15 @@ public class ToolbarPanel extends JToolBar {
 		return button;
 	}
 
+	public void getTest() {
+		
+	}
 	private JToggleButton createAiButton(final String icon, final String offIcon, String tooltip) {
 		final JToggleButton button = new JToggleButton();
 		button.setToolTipText(tooltip);
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				MapTool.getFrame().getCurrentZoneRenderer().setUseAStarPathfinding(button.isSelected());
+				AppPreferences.setUseAstarPathfinding(button.isSelected());
 			}
 		});
 
@@ -278,7 +282,10 @@ public class ToolbarPanel extends JToolBar {
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
-
+		
+		if(AppPreferences.isUsingAstarPathfinding())
+			button.doClick();
+		
 		return button;
 	}
 

@@ -80,7 +80,6 @@ public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoi
 		Set<Point2D> validMovePoints = new HashSet<Point2D>();
 
 		for (Entry<Point2D, Boolean> entry : validMoves.entrySet()) {
-			// System.out.println("VALUE: " + entry.getValue());
 			if (entry.getValue()) {
 				validMovePoints.add(new Point2D.Double(entry.getKey().getX() - x, entry.getKey().getY() - y));
 			}
@@ -106,7 +105,6 @@ public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoi
 				double x2 = entryBounds.getCenterX();
 				double y2 = entryBounds.getCenterY();
 				validMoveShape.lineTo(x2, y2);
-				// System.out.println("lineTo: " + validMoveShape.getCurrentPoint().toString());
 			}
 		}
 
@@ -114,21 +112,6 @@ public class AStarCellPoint extends CellPoint implements Comparable<AStarCellPoi
 
 		return validMoveShape;
 	}
-
-	// private void drawArrow(Graphics2D g, double node1X, double node1Y, double node2X, double node2Y) {
-	// double arrowAngle = Math.toRadians(45.0);
-	// double arrowLength = 10.0;
-	// double dx = node1X - node2X;
-	// double dy = node1Y - node2Y;
-	// double angle = Math.atan2(dy, dx);
-	// double x1 = Math.cos(angle + arrowAngle) * arrowLength + node2X;
-	// double y1 = Math.sin(angle + arrowAngle) * arrowLength + node2Y;
-	//
-	// double x2 = Math.cos(angle - arrowAngle) * arrowLength + node2X;
-	// double y2 = Math.sin(angle - arrowAngle) * arrowLength + node2Y;
-	// g.strokeLine(node2X, node2Y, x1, y1);
-	// g.strokeLine(node2X, node2Y, x2, y2);
-	// }
 
 	@Override
 	public int compareTo(AStarCellPoint other) {
