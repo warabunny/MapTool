@@ -55,7 +55,7 @@ public interface ZoneWalker {
 	boolean toggleWaypoint(CellPoint point);
 
 	public void setFootprint(TokenFootprint footprint);
-	
+
 	public default Collection<AStarCellPoint> getCheckedPoints() {
 		return null;
 	}

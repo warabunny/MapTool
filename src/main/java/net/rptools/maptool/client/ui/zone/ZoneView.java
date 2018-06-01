@@ -281,7 +281,7 @@ public class ZoneView implements ModelChangeListener {
 			tokenVisibleAreaCache.put(token.getId(), tokenVisibleArea);
 		}
 
-		//Stopwatch stopwatch = Stopwatch.createStarted();
+		// Stopwatch stopwatch = Stopwatch.createStarted();
 
 		// Combine in the visible light areas
 		// Jamz TODO: add condition for daylight and darkness! Currently no darkness in daylight
@@ -304,8 +304,8 @@ public class ZoneView implements ModelChangeListener {
 				lightSourceTokens.add(token);
 			}
 
-			//stopwatch.reset();
-			//stopwatch.start();
+			// stopwatch.reset();
+			// stopwatch.start();
 			// Jamz: Iterate through all tokens and combine light areas by lumens
 			CombineLightsSwingWorker workerThread = new CombineLightsSwingWorker(token, lightSourceTokens);
 			workerThread.execute();
@@ -319,7 +319,7 @@ public class ZoneView implements ModelChangeListener {
 				e.printStackTrace();
 			}
 
-			//log.info("CombineLightsSwingWorker: \t" + stopwatch);
+			// log.info("CombineLightsSwingWorker: \t" + stopwatch);
 
 			// Check for personal vision and add to overall light map
 			if (sight.hasPersonalLightSource()) {
@@ -359,7 +359,7 @@ public class ZoneView implements ModelChangeListener {
 		allLightAreaMap.clear(); // Dispose of object, only needed for the scope of this method
 		tokenVisionCache.put(token.getId(), tokenVisibleArea);
 
-		//log.info("getVisibleArea: \t\t" + stopwatch);
+		// log.info("getVisibleArea: \t\t" + stopwatch);
 
 		return tokenVisibleArea;
 	}
@@ -421,19 +421,19 @@ public class ZoneView implements ModelChangeListener {
 			for (Entry<Double, Area> light : lightArea.entrySet()) {
 				// Area tempArea = light.getValue();
 				Path2D path = new Path2D.Double();
-				path.append(light.getValue().getPathIterator(null, 1), false); 
-				
+				path.append(light.getValue().getPathIterator(null, 1), false);
+
 				synchronized (allLightAreaMap) {
 					if (allLightAreaMap.containsKey(light.getKey())) {
-						//Area allLight = allLightAreaMap.get(light.getKey());
-						//tempArea.add(allLight);
-						
+						// Area allLight = allLightAreaMap.get(light.getKey());
+						// tempArea.add(allLight);
+
 						// Path2D is faster than Area it looks like
 						path.append(allLightAreaMap.get(light.getKey()).getPathIterator(null, 1), false);
 
 					}
 
-					//allLightAreaMap.put(light.getKey(), tempArea);
+					// allLightAreaMap.put(light.getKey(), tempArea);
 					allLightAreaMap.put(light.getKey(), new Area(path));
 				}
 			}

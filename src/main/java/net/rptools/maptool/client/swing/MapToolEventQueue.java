@@ -77,11 +77,11 @@ public class MapToolEventQueue extends EventQueue {
 	}
 
 	private static void reportToSentryIO(Throwable thrown) {
-		if(Sentry.getStoredClient().getEnvironment().equalsIgnoreCase("development")) {
+		if (Sentry.getStoredClient().getEnvironment().equalsIgnoreCase("development")) {
 			log.info("Sentry.IO stacktrace logging skipped in development environment.");
 			return;
 		}
-		
+
 		log.error("Logging stacktrace to Sentry.IO!");
 
 		// Note that all fields set on the context are optional. Context data is copied onto all future events in the

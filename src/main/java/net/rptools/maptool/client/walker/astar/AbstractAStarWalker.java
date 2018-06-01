@@ -135,7 +135,6 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 		// log.info("A* Path timeout estimate: " + estimatedTimeoutNeeded);
 
-		boolean cancelled = false;
 		while (!openList.isEmpty()) {
 			if (System.currentTimeMillis() > timeOut + estimatedTimeoutNeeded) {
 				log.info("Timing out after " + estimatedTimeoutNeeded);
@@ -180,7 +179,6 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 
 			if (Thread.interrupted()) {
 				// log.info("Thread interrupted!");
-				cancelled = true;
 				openList.clear();
 			}
 		}
@@ -204,11 +202,11 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		if (timeOut > 50)
 			log.info("Time to calculate A* path warning: " + timeOut + "ms");
 
-//		if (retrievalCount > 0)
-//			log.info("avgRetrieveTime: " + Math.floor(avgRetrieveTime / retrievalCount)/1000 + " micro");
-//		if (testCount > 0)
-//			log.info("avgTestTime:     " + Math.floor(avgTestTime / testCount)/1000 + " micro");
-		
+		// if (retrievalCount > 0)
+		// log.info("avgRetrieveTime: " + Math.floor(avgRetrieveTime / retrievalCount)/1000 + " micro");
+		// if (testCount > 0)
+		// log.info("avgTestTime: " + Math.floor(avgTestTime / testCount)/1000 + " micro");
+
 		return ret;
 	}
 
@@ -286,7 +284,7 @@ public abstract class AbstractAStarWalker extends AbstractZoneWalker {
 		debugLabels.add(hScore.getId());
 		debugLabels.add(fScore.getId());
 	}
-	
+
 	public Collection<AStarCellPoint> getCheckedPoints() {
 		return checkedList.values();
 	}

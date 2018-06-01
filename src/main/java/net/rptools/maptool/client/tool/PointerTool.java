@@ -237,24 +237,11 @@ public class PointerTool extends DefaultTool implements ZoneOverlay {
 			return;
 		}
 
-		// TokenDragWorker tdw = new TokenDragWorker();
-		// tdw.execute();
-
-		renderer.addMoveSelectionSet(p.getName(), tokenBeingDragged.getId(), renderer.getOwnedTokens(renderer.getSelectedTokenSet()), false, true);
+		renderer.addMoveSelectionSet(p.getName(), tokenBeingDragged.getId(), renderer.getOwnedTokens(renderer.getSelectedTokenSet()), false);
 		MapTool.serverCommand().startTokenMove(p.getName(), renderer.getZone().getId(), tokenBeingDragged.getId(), renderer.getOwnedTokens(renderer.getSelectedTokenSet()));
 
 		isDraggingToken = true;
 	}
-
-	// public class TokenDragWorker extends SwingWorker<Void, Void> {
-	// @Override
-	// protected Void doInBackground() throws Exception {
-	// Player p = MapTool.getPlayer();
-	// renderer.addMoveSelectionSet(p.getName(), tokenBeingDragged.getId(), renderer.getOwnedTokens(renderer.getSelectedTokenSet()), false, true);
-	// //MapTool.serverCommand().startTokenMove(p.getName(), renderer.getZone().getId(), tokenBeingDragged.getId(), renderer.getOwnedTokens(renderer.getSelectedTokenSet()));
-	// return null;
-	// }
-	// }
 
 	public void stopTokenDrag() {
 		renderer.commitMoveSelectionSet(tokenBeingDragged.getId()); // TODO: figure out a better way

@@ -17,7 +17,7 @@ buildscript {
 
 // Access Git info from build script
 plugins {
-	id "org.ajoberstar.grgit" version "2.1.0"
+	id "org.ajoberstar.grgit" version "2.2.0"
 }
 
 // Apply the java plugin to add support for Java
@@ -29,12 +29,12 @@ apply plugin: 'com.diffplug.gradle.spotless'
 apply plugin: 'javafx-gradle-plugin'
 
 // Current Build version
-version = '1.4.4.3'
+version = '1.4.5.0'
 
 // Definitions
 defaultTasks 'clean', 'build'
-sourceCompatibility = 1.9
-targetCompatibility = 1.9
+sourceCompatibility = 9
+targetCompatibility = 9
 
 // Don't fail build if tests fail until tests are cleaned up
 test.ignoreFailures = true
@@ -353,5 +353,5 @@ jfx {
 }
 
 task wrapper(type: Wrapper) {
-	gradleVersion = '4.6'
+	gradleVersion = '4.7'
 }

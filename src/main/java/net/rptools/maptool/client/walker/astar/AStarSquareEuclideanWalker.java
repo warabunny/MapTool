@@ -181,9 +181,9 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 		AStarCellPoint checkNode = checkedList.get(goal);
 		if (checkNode != null) {
 			Boolean test = checkNode.isValidMove(start);
-			
+
 			// if it's null then the test for that direction hasn't been set yet otherwise just return the previous result
-			if(test != null) {
+			if (test != null) {
 				// log.info("Time to retrieve: " + stopwatch.elapsed(TimeUnit.NANOSECONDS));
 				avgRetrieveTime += stopwatch.elapsed(TimeUnit.NANOSECONDS);
 				retrievalCount++;
@@ -273,7 +273,6 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 		// For now, we'll assume center to center?
 
 		// OLD WAY
-		
 
 		double x1 = startBounds.getCenterX();
 		double y1 = startBounds.getCenterY();
@@ -297,10 +296,10 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
 			return true;
 		}
 
-		//log.info("Time to test: " + stopwatch.elapsed(TimeUnit.NANOSECONDS));
+		// log.info("Time to test: " + stopwatch.elapsed(TimeUnit.NANOSECONDS));
 		avgTestTime += stopwatch.elapsed(TimeUnit.NANOSECONDS);
 		testCount++;
-		
+
 		goal.setValidMove(start, blocksMovement);
 		checkedList.put(goal, goal);
 

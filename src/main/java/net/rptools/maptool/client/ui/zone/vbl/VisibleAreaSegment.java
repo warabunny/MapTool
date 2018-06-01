@@ -44,9 +44,9 @@ public class VisibleAreaSegment implements Comparable<VisibleAreaSegment> {
 	}
 
 	public double getDoubleDistanceFromOrigin() {
-		 return getCenterPoint().distance(origin);
+		return getCenterPoint().distance(origin);
 	}
-	
+
 	public Point2D getCenterPoint() {
 		if (centerPoint == null) {
 			Area path = getPath();

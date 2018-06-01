@@ -103,6 +103,12 @@ public class ToolbarPanel extends JToolBar {
 		add(optionPanel);
 		add(Box.createGlue());
 
+		// New button to toggle AI on/off
+		add(createAiButton(
+				"net/rptools/maptool/client/image/tool/ai-blue-green.png",
+				"net/rptools/maptool/client/image/tool/ai-blue-off.png",
+				I18N.getText("tools.ai_selector.tooltip")));
+
 		add(Box.createHorizontalStrut(10));
 		add(new JSeparator(JSeparator.VERTICAL));
 		add(Box.createHorizontalStrut(10));
@@ -254,6 +260,25 @@ public class ToolbarPanel extends JToolBar {
 		}
 		optionPanel.add(panel, icon);
 		buttonGroup.add(button);
+		return button;
+	}
+
+	private JToggleButton createAiButton(final String icon, final String offIcon, String tooltip) {
+		final JToggleButton button = new JToggleButton();
+		button.setToolTipText(tooltip);
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				MapTool.getFrame().getCurrentZoneRenderer().setUseAStarPathfinding(button.isSelected());
+			}
+		});
+
+		try {
+			button.setIcon(new ImageIcon(ImageUtil.getImage(offIcon)));
+			button.setSelectedIcon(new ImageIcon(ImageUtil.getImage(icon)));
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+
 		return button;
 	}
 

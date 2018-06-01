@@ -1517,7 +1517,6 @@ public class MapTool {
 
 		// Set MapTool version
 		sentry.setRelease(getVersion());
-		// sentry.setEnvironment("Development");
 		sentry.addTag("os", System.getProperty("os.name"));
 		sentry.addTag("version", MapTool.getVersion());
 

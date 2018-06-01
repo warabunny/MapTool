@@ -14,8 +14,11 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
+import java.awt.geom.Arc2D.Double;
 import java.awt.geom.Area;
 import java.awt.geom.GeneralPath;
+import java.awt.geom.Path2D;
+import java.awt.geom.PathIterator;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -53,7 +56,7 @@ public abstract class Grid implements Cloneable {
 	 */
 	public static final int MIN_GRID_SIZE = 9;
 	public static final int MAX_GRID_SIZE = 350;
-	private static final int CIRCLE_SEGMENTS = 60;
+	protected static final int CIRCLE_SEGMENTS = 60;
 
 	private static final Dimension NO_DIM = new Dimension();
 
@@ -353,7 +356,7 @@ public abstract class Grid implements Cloneable {
 						log.info("Adding to cache radius: " + Integer.valueOf(dist));
 					}
 				}
-				
+
 				// place the light, this is very fast, < 1ms
 				Set<CellPoint> tokenCells = new HashSet<CellPoint>();
 				double tokenSizeAdjust = 0;
@@ -382,7 +385,7 @@ public abstract class Grid implements Cloneable {
 					log.info("Long time for grid light " + dist + ": " + time + "ms");
 			} else {
 				// Fall back to regular circle in daylight, etc.
-				visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange, visionRange, 100); // FIXME: change 100 to a configuration setting?
+				visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange, visionRange, CIRCLE_SEGMENTS);
 			}
 			break;
 		case SQUARE:
@@ -392,10 +395,13 @@ public abstract class Grid implements Cloneable {
 			if (token.getFacing() == null) {
 				token.setFacing(0);
 			}
-			// TODO: confirm if we want the offset to be positive-counter-clockwise, negative-clockwise or vice versa
-			// simply a matter of changing the sign on offsetAngle
-			Area tempvisibleArea = new Area(new Arc2D.Double(-visionRange, -visionRange, visionRange * 2,
-					visionRange * 2, 360.0 - (arcAngle / 2.0) + (offsetAngle * 1.0), arcAngle, Arc2D.PIE));
+			// Area tempvisibleArea = new Area(new Arc2D.Double(-visionRange, -visionRange, visionRange * 2, visionRange * 2, 360.0 - (arcAngle / 2.0) + (offsetAngle * 1.0), arcAngle, Arc2D.PIE));
+
+			Arc2D cone = new Arc2D.Double(-visionRange, -visionRange, visionRange * 2, visionRange * 2, 360.0 - (arcAngle / 2.0) + (offsetAngle * 1.0), arcAngle, Arc2D.PIE);
+			GeneralPath path = new GeneralPath();
+			path.append(cone.getPathIterator(null, 1), false); // Flatten the cone to remove 'curves'
+			Area tempvisibleArea = new Area(path);
+
 			// Rotate
 			tempvisibleArea = tempvisibleArea
 					.createTransformedArea(AffineTransform.getRotateInstance(-Math.toRadians(token.getFacing())));
@@ -420,11 +426,11 @@ public abstract class Grid implements Cloneable {
 			double adjustment = (footprintWidth < footprintHeight) ? footprintWidth : footprintHeight;
 			x -= adjustment / 2;
 			y -= adjustment / 2;
-			System.out.println("adjustment " + adjustment);
+			// System.out.println("adjustment " + adjustment);
 			visibleArea = createHex(x, y, visionRange, 0);
 			break;
 		default:
-			visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange * 2, visionRange * 2, 100);
+			visibleArea = GraphicsUtil.createLineSegmentEllipse(-visionRange, -visionRange, visionRange * 2, visionRange * 2, CIRCLE_SEGMENTS);
 			break;
 		}
 
