@@ -31,8 +31,8 @@ version = '1.4.5.0'
 
 // Definitions
 defaultTasks 'clean', 'build'
-sourceCompatibility = 9
-targetCompatibility = 9
+sourceCompatibility = 10
+targetCompatibility = 10
 
 // Don't fail build if tests fail until tests are cleaned up
 test.ignoreFailures = true
