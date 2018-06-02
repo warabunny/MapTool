@@ -2,13 +2,6 @@ language: java
 sudo: false
 matrix:
   include:
-  - os: linux
-    jdk: oraclejdk10
-    addons:
-      apt:
-        packages:
-        - oracle-java10-installer
-        - fakeroot
   - os: osx
     osx_image: xcode9.2
     before_install:
