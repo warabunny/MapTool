@@ -6,6 +6,7 @@ platform: x64
 image:
   - Ubuntu
 build_script:
+  - whereis java
   - gradle build -x spotlessCheck
 after_build:
   - gradle deploy
