@@ -6,9 +6,9 @@ platform: x64
 image:
   - Ubuntu
 build_script:
-  - ./gradle build -x spotlessCheck
+  - gradle build -x spotlessCheck
 after_build:
-  - ./gradle deploy
+  - gradle deploy
 artifacts:
   - path: build\libs\MapTool-*.jar
     name: MapTool-Jar
