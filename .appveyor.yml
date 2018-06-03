@@ -4,6 +4,8 @@ pull_requests:
 skip_non_tags: false
 platform: x64
 image: Ubuntu
+environment:
+  java home: /usr/lib/jvm/java-9-openjdk-amd64
 build_script:
   - which java && which javac && java -version
   - echo java home is $JAVA_HOME
