@@ -3,13 +3,11 @@ pull_requests:
   do_not_increment_build_number: true
 skip_non_tags: false
 platform: x64
-environment:
-  matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-      JAVA_HOME: /usr/bin/java
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      JAVA_HOME: C:\Program Files\Java\jdk10
+image: Ubuntu
 build_script:
+  - which java && which javac && java -version
+  - echo java home is $JAVA_HOME
+  - sudo update-alternatives --config java
   - gradle build -x spotlessCheck
 after_build:
   - gradle deploy
