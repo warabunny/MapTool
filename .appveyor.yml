@@ -12,7 +12,7 @@ install:
   - sh: sudo apt install -y oracle-java10-set-default
   - sh: export JAVA_HOME=/usr/lib/jvm/java-10-oracle
   - sh: echo java home is $JAVA_HOME
-  - sh: which java && which javac && java -version
+  - sh: sudp apt install -y fakeroot
   - sh: ./gradlew -version
 build_script:
   - sh: ./gradlew -x spotlessCheck
