@@ -5,14 +5,14 @@ skip_non_tags: false
 platform: x64
 image: Ubuntu
 install:
-  - sh: echo oracle-java10-installer shared/accepted-oracle-licence-v1-1 boolean true | sudo /usr/bin/debconf-set-selections
   - sh: echo oracle-java10-installer shared/accepted-oracle-license-v1-1 select true | sudo /usr/bin/debconf-set-selections
   - sh: sudo add-apt-repository ppa:linuxuprising/java
   - sh: sudo apt update
   - sh: sudo apt install -y oracle-java10-installer
   - sh: sudo apt install -y oracle-java10-set-default
-  - sh: which java && which javac && java -version
+  - sh: export JAVA_HOME=/usr/lib/jvm/java-10-oracle
   - sh: echo java home is $JAVA_HOME
+  - sh: which java && which javac && java -version
   - sh: ./gradlew -version
 build_script:
   - sh: ./gradlew -x spotlessCheck
