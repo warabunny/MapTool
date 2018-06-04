@@ -3,7 +3,9 @@ pull_requests:
   do_not_increment_build_number: true
 skip_non_tags: false
 platform: x64
-image: Ubuntu
+image: 
+  - Ubuntu
+  - Visual Studio 2017
 install:
   - sh: echo oracle-java10-installer shared/accepted-oracle-license-v1-1 select true | sudo /usr/bin/debconf-set-selections
   - sh: sudo add-apt-repository ppa:linuxuprising/java
@@ -13,11 +15,11 @@ install:
   - sh: export JAVA_HOME=/usr/lib/jvm/java-10-oracle
   - sh: echo java home is $JAVA_HOME
   - sh: sudo apt install -y fakeroot
-  - sh: ./gradlew -version
+  - ./gradlew -version
 build_script:
-  - sh: ./gradlew build -x test
+  - ./gradlew build -x test
 after_build:
-  - sh: ./gradlew deploy
+  - ./gradlew deploy
 artifacts:
   - path: build\libs\MapTool-*.jar
     name: MapTool-Jar
