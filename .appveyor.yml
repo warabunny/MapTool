@@ -10,11 +10,11 @@ install:
   - sh: export JAVA_HOME=$(pwd)/jdk-10
   - sh: which java && which javac && java -version
   - sh: echo java home is $JAVA_HOME
-  - sh: gradle -version
+  - sh: ./gradlew -version
 build_script:
-  - gradle build -x spotlessCheck
+  - sh: ./gradlew -x spotlessCheck
 after_build:
-  - gradle deploy
+  - sh: ./gradlew deploy
 artifacts:
   - path: build\libs\MapTool-*.jar
     name: MapTool-Jar
