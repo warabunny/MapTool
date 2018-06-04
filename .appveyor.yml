@@ -10,6 +10,7 @@ install:
   - sh: export JAVA_HOME=$(pwd)/jdk-10
   - sh: which java && which javac && java -version
   - sh: echo java home is $JAVA_HOME
+  - sh: gradle -version
 build_script:
   - gradle build -x spotlessCheck
 after_build:
