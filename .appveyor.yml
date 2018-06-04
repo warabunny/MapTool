@@ -15,7 +15,7 @@ install:
   - sh: sudo apt install -y fakeroot
   - sh: ./gradlew -version
 build_script:
-  - sh: ./gradlew -x spotlessCheck
+  - sh: ./gradlew build -x test
 after_build:
   - sh: ./gradlew deploy
 artifacts:
