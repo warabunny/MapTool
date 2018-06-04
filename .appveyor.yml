@@ -5,9 +5,11 @@ skip_non_tags: false
 platform: x64
 image: Ubuntu
 install:
-  - sh: wget https://download.java.net/java/GA/jdk10/10/binaries/openjdk-10_linux-x64_bin.tar.gz
-  - sh: tar -xzf openjdk-10_linux-x64_bin.tar.gz
-  - sh: export JAVA_HOME=$(pwd)/jdk-10
+  - sh: echo oracle-java10-installer shared/accepted-oracle-licence-v1-1 boolean true | sudo /usr/bin/debconf-set-selections
+  - sh: sudo add-apt-repository ppa:linuxuprising/java
+  - sh: sudo apt update
+  - sh: sudo apt install oracle-java10-installer
+  - sh: sudo apt install oracle-java10-set-default
   - sh: which java && which javac && java -version
   - sh: echo java home is $JAVA_HOME
   - sh: ./gradlew -version
