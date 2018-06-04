@@ -16,6 +16,7 @@ install:
   - sh: echo java home is $JAVA_HOME
   - sh: sudo apt install -y fakeroot
   - ./gradlew -version
+  - cmd: git config --global core.autocrlf true
 build_script:
   - ./gradlew build -x test
 after_build:
