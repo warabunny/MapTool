@@ -4,12 +4,13 @@ pull_requests:
 skip_non_tags: false
 platform: x64
 image: Ubuntu
-environment:
-  java home: /usr/lib/jvm/java-9-openjdk-amd64
+install:
+  - sh: wget https://download.java.net/java/GA/jdk10/10/binaries/openjdk-10_linux-x64_bin.tar.gz
+  - sh: tar -xzf openjdk-10_linux-x64_bin.tar.gz
+  - sh: export JAVA_HOME=$(pwd)/jdk-10
+  - sh: which java && which javac && java -version
+  - sh: echo java home is $JAVA_HOME
 build_script:
-  - which java && which javac && java -version
-  - echo java home is $JAVA_HOME
-  - sudo update-alternatives --config java
   - gradle build -x spotlessCheck
 after_build:
   - gradle deploy
