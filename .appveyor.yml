@@ -38,6 +38,7 @@ deploy:
     draft: true
     prerelease: true
     force_update: false
+    tag: $(APPVEYOR_REPO_TAG_NAME)
     on:
       appveyor_repo_tag: true
 notifications:
