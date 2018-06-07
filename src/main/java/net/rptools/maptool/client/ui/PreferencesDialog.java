@@ -15,7 +15,13 @@ import java.awt.event.FocusEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.ResourceBundle;
+import java.util.Set;
+
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -190,12 +196,14 @@ public class PreferencesDialog extends JDialog {
 	private final JTextField jvmXmxTextField;
 	private final JTextField jvmXmsTextField;
 	private final JTextField jvmXssTextField;
+	private final JTextField dataDirTextField;
 
 	private final JCheckBox jvmAssertionsCheckbox;
 	private final JCheckBox jvmDirect3dCheckbox;
 	private final JCheckBox jvmOpenGLCheckbox;
 	private final JCheckBox jvmInitAwtCheckbox;
-	private final JCheckBox jvmEnableHidpiCheckbox;
+
+	private final JComboBox<String> jvmLanguageOverideComboBox;
 
 	public PreferencesDialog() {
 		super(MapTool.getFrame(), "Preferences", true);
@@ -288,12 +296,20 @@ public class PreferencesDialog extends JDialog {
 		jvmXmxTextField = panel.getTextField("jvmXmxTextField");
 		jvmXmsTextField = panel.getTextField("jvmXmsTextField");
 		jvmXssTextField = panel.getTextField("jvmXssTextField");
+		dataDirTextField = panel.getTextField("dataDirTextField");
 
 		jvmAssertionsCheckbox = panel.getCheckBox("jvmAssertionsCheckbox");
 		jvmDirect3dCheckbox = panel.getCheckBox("jvmDirect3dCheckbox");
 		jvmOpenGLCheckbox = panel.getCheckBox("jvmOpenGLCheckbox");
 		jvmInitAwtCheckbox = panel.getCheckBox("jvmInitAwtCheckbox");
-		jvmEnableHidpiCheckbox = panel.getCheckBox("jvmEnableHidpiCheckbox");
+
+		jvmLanguageOverideComboBox = panel.getComboBox("jvmLanguageOverideComboBox");
+
+		DefaultComboBoxModel<String> languageModel = new DefaultComboBoxModel<String>();
+		for (Entry<String, String> language : UserJvmPrefs.getLanguages())
+			languageModel.addElement(language.getKey());
+
+		jvmLanguageOverideComboBox.setModel(languageModel);
 
 		setInitialState();
 
@@ -691,8 +707,17 @@ public class PreferencesDialog extends JDialog {
 				}
 			}
 		});
+		dataDirTextField.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				if (!e.isTemporary()) {
+					UserJvmPrefs.setJvmOption(JVM_OPTION.DATA_DIR, dataDirTextField.getText().trim());
+				}
+			}
+		});
 
 		jvmAssertionsCheckbox.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				UserJvmPrefs.setJvmOption(JVM_OPTION.ASSERTIONS, jvmAssertionsCheckbox.isSelected());
 			}
@@ -712,9 +737,10 @@ public class PreferencesDialog extends JDialog {
 				UserJvmPrefs.setJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION, jvmInitAwtCheckbox.isSelected());
 			}
 		});
-		jvmEnableHidpiCheckbox.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// UserJvmPrefs.setJvmOption(TBD, jvmEnableHidpiCheckbox.isSelected());
+
+		jvmLanguageOverideComboBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				UserJvmPrefs.setJvmOption(JVM_OPTION.LOCALE_LANGUAGE, jvmLanguageOverideComboBox.getSelectedItem().toString());
 			}
 		});
 
@@ -878,12 +904,14 @@ public class PreferencesDialog extends JDialog {
 			jvmXmxTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MAX_MEM));
 			jvmXmsTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.MIN_MEM));
 			jvmXssTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.STACK_SIZE));
+			dataDirTextField.setText(UserJvmPrefs.getJvmOption(JVM_OPTION.DATA_DIR));
 
 			jvmAssertionsCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.ASSERTIONS));
 			jvmDirect3dCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_D3D));
 			jvmOpenGLCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.JAVA2D_OPENGL_OPTION));
 			jvmInitAwtCheckbox.setSelected(UserJvmPrefs.hasJvmOption(JVM_OPTION.MACOSX_EMBEDDED_OPTION));
-			// jvmEnableHidpiCheckbox.setSelected(UserJvmPrefs.hasJvmOption(TBD));
+
+			jvmLanguageOverideComboBox.setSelectedItem(UserJvmPrefs.getJvmOption(JVM_OPTION.LOCALE_LANGUAGE));
 		} catch (UnsatisfiedLinkError ule) {
 			log.error("Error setting JVM options from preferences. Most likely cause, manual launch of JAR.", ule);
 			tabbedPane.setEnabledAt(tabbedPane.indexOfTab("Startup"), false);

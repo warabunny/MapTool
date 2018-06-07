@@ -332,12 +332,13 @@ task deploy(dependsOn: [displayGitInfo, uberJar, copyPackageExtras, prepareInnoS
 				"-Bwin.menuGroup=" + vendor,
 				"-BshortcutHint=true",
 				"-BappVersion=" + version,
-				"-Bwin.msi.productVersion=1.4.4",
+				"-Bwin.msi.productVersion=1.4.5",
 				"-BlicenseFile=COPYING.AFFERO",
-				"-BlicenseType=GNU AFFERO GENERAL PUBLIC LICENSE",
+				"-BlicenseType='GNU AFFERO GENERAL PUBLIC LICENSE'",
 				"-Bcategory=Games",
 				"-Bemail=maptool@nerps.net",
-				"-BjvmProperties=MAPTOOL_DATADIR=.maptool-" + vendor
+				"-BuserJvmOptions=-DMAPTOOL_DATADIR\\==.maptool-" + vendor
+				// "-BjvmProperties=MAPTOOL_DATADIR=.maptool-" + vendor
 				//"-BuserJvmOptions=-Xss=4M"
 
 				println commandLine
